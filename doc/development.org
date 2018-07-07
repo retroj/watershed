@@ -1,0 +1,163 @@
+
+* dimensions
+
+wave edge: 9 foot or 7 + 2
+
+streams: 9 (left)
+streams: 7.5, 7.5 (maybe +1 foot)
+
+34.0 feet (10.36 m)
+
+30 lights per meter
+
+310.8
+
+* project
+
+ - Calvin College Eco Preserve
+ - Watershed display - lifecycle of water
+   - LED light strip effects for dripping water. An LED strip showing a
+     drip, and an LED matrix (or a monitor) showing the ripple effect when
+     the drip hits.
+
+* todos
+** TODO learn Python API for DotStar
+:LOGBOOK:
+- State -> "TODO"  [2018-06-23 Sat]
+:END:
+* components
+
+ - DotStar LED strips: https://www.adafruit.com/product/2238?length=1
+ - 64x32 RGB Matrix Board: https://www.adafruit.com/product/2276
+   - 385mm * 190mm * 13mm
+   - 15.2 * 7.5 * 0.5 inches
+ - a Raspberry Pi 3
+
+** monitor instead of led matrix
+
+ - Elecrow 10.1 Inch
+   - https://www.amazon.com/dp/B076GZVCP2/ref=psdc_1292115011_t2_B000AYHY7I
+   - total dimensions: 255x164x28mm
+   - 10 * 6.45 * 1.1 inches
+
+ - Elecrow 11.6 inch
+   - total dimensions: 11.5 * 7.25 * 1 inch
+   - https://www.amazon.com/gp/product/B01NB17E0Z/ref=ask_ql_qh_dp_hza
+
+ - Elecrow 12 inch
+   - total dimensions:
+
+ - Elecrow 13.3 inch
+   - total dimensions: 13.1 * 8.6 * 1.3 inch
+
+ - Eyoyo 11.6 inch
+   - total dimensions: 11.7 * 7.6 * 1.5
+   - https://www.amazon.com/Eyoyo-Monitor-1366x768-Portable-Display/dp/B01KJVERF8/ref=sr_1_fkmr0_1
+   - location of inputs may be better on this than Elecrows
+
+ - Eyoyo 13 inch
+   - 12.5 * 7.8 inch
+   - https://www.amazon.com/Eyoyo-inch-Field-Monitor-1920x1080/dp/B0762NKY3D/ref=sr_1_fkmr2_1
+   - location of inputs may be better on this than Elecrows
+
+ - HP ELiteDisplay G8R65A8
+   - 13.6 x 0.53 x 8.55 in
+
+* safe power-down on power cut
+
+We need a UPS which allows us to do a safe shutdown of the Pi when the
+battery is low.
+
+** Read-only SD card
+
+https://www.raspberrypi.org/blog/adafruits-read-only/
+This is available only for Raspian Lite, so we would not be able to use X.
+
+https://hallard.me/raspberry-pi-read-only/
+This one has a lot of steps.
+
+*** and boot from USB drive?
+
+Another solution is to have the root filesystem on a USB drive. This is
+apparently much less succeptible to corruption than using the SD card.
+
+Also use btrfs file system.
+
+** UPS
+*** diy
+
+http://homediyelectronics.com/projects/raspberrypi/ups/
+http://homediyelectronics.com/projects/raspberrypi/ups/safeshutdown
+
+*** UPS PIco HV3.0
+
+https://github.com/modmypi/PiModules/wiki/UPS-PIco-HV3.0-A-Stack-450
+
+*** geekworm
+
+https://www.aliexpress.com/item/Raspi-UPS-HAT-Extension-Board-Raspberry-Pi-3-Power-Source-Board-Raspberry-Pi-Battery-Adapter-EU/32799563777.html
+https://www.banggood.com/Geekworm-UPS-HAT-Board-2500mAh-Lithium-Battery-For-Raspberry-Pi-3-Model-B-Pi-2B-B-A-p-1105260.html?cur_warehouse=USA
+
+http://tinkerman.cat/geekworm-power-pack-hat-hack/
+Some info on how to make the Geekworm hat work well.
+
+*** pi-uptime-ups
+
+http://alchemy-power.com/pi-uptime-ups/
+
+*** lifepo4wered/pi3
+
+https://lifepo4wered.com/lifepo4wered-pi3.html
+
+*** LiFePO4wered/Pi+
+
+Supersedes the LiFePO4wered/Pi3
+
+*** PiJuice HAT
+
+https://www.modmypi.com/raspberry-pi/power-1051/ups-boards-1051/pijuice-standard
+
+$55 + $10 shipping
+
+*** s.usv
+
+https://shop.olmatic.de/en/ups-raspberry-pi/2-susv-pi-advanced-4260434190029.html
+
+This would not be compatible with the RGB matrix hat that we want to use.
+
+* driving dotstar with raspberry pi
+
+A Logic Level Shifter is needed because the Pi has 3V pins, but the DotStar takes 5V.
+
+ - Logic Level Shifter: https://www.adafruit.com/product/1787
+ - How to hook it up: https://learn.adafruit.com/neopixels-on-raspberry-pi/wiring
+
+ - https://www.youtube.com/watch?v=zlVYj_ZRiDo
+   - code: https://github.com/noxgenus/dotstar_python/blob/master/green.py
+     (code is not exactly what is shown in the video)
+ 
+ - http://blog.shinium.eu/2015/06/raspberry-pi-and-dotstar-led-jukebox.html
+
+ - https://www.youtube.com/watch?v=v85H2ZNjc4k
+   DotStar light painter with raspberry pi
+
+* other example of dripping water effect with led strip
+
+https://www.youtube.com/watch?v=R9wbYRV1AEM
+
+This one has source code:
+http://rurandom.org/justintime/index.php?title=WS2811_%22Water_torture%22
+
+* raspberry pi misc
+** breakout kits
+*** T-Cobbler
+* examples of things i've made in the past
+
+lispforlights humble beginnings
+https://www.youtube.com/watch?v=mvvp22Y4xAo
+
+lispforlights midi test
+https://www.youtube.com/watch?v=2Jok5Ri7cv4
+
+lispforlights in the planetarium
+https://www.youtube.com/watch?v=VvUWYXyD4As
