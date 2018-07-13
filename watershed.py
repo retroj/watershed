@@ -23,32 +23,39 @@ class Sprites ():
 
 
 class Mob ():
-    def update (self, pond):
-        return True
-
-
-class Fish1 (Mob):
+    spawn_time = None
     sprite = None
     mask = None
     width = 0
     height = 0
-    spawn_time = None
+
+    def __init__ (self, pond, t):
+        self.spawn_time = t
+
+    def update (self, pond):
+        return True
+
+
+class Fish (Mob):
     start_x = 0
     x = 0
     y = 0
     direction = 0
     speed = 0
 
-    def __init__ (self, pond):
-        self.spawn_time = time()
+    def __init__ (self, pond, t):
+        super(Fish, self).__init__(pond, t)
         self.direction = 1 if random() < 0.5 else -1
         self.speed = random() * 6 + 2
         if self.direction == 1:
-            self.sprite, self.mask, self.width, self.height = Sprites.get("assets/sprites/Fish1/Fish1-right.png")
+            self.sprite, self.mask, self.width, self.height =
+                Sprites.get("assets/sprites/Fish1/Fish1-right.png")
         else:
-            self.sprite, self.mask, self.width, self.height = Sprites.get("assets/sprites/Fish1/Fish1-left.png")
+            self.sprite, self.mask, self.width, self.height =
+                Sprites.get("assets/sprites/Fish1/Fish1-left.png")
         self.start_x = -self.width if self.direction == 1 else pond.width
-        ##XXX: this math can allow the lower level to be above the upper level, resulting in an error
+        ##XXX: this math can allow the lower level to be above the upper level,
+        ##     resulting in an error
         self.y = randint(pond.level_px + self.height * 0.5, pond.height - self.height * 1.5)
 
     def update (self, pond, t):
@@ -63,10 +70,10 @@ class Fish1 (Mob):
         return True
 
     @staticmethod
-    def maybe_spawn (pond):
+    def maybe_spawn (pond, t):
         if pond.level > 0.5 and pond.health > 0.5 and random() < 0.001:
             print("spawning fish")
-            return Fish1(pond)
+            return Fish(pond, t)
 
 
 
@@ -93,8 +100,8 @@ class Pond (SampleBase):
             self.level = max(min(l, 1.0), 0.0)
             self.level_px = int(self.level * -32 + 32)
 
-    def spawn_mobs (self):
-        f = Fish1.maybe_spawn(self)
+    def spawn_mobs (self, t):
+        f = Fish.maybe_spawn(self, t)
         if f:
             self.mobs.append(f)
 
@@ -116,16 +123,17 @@ class Pond (SampleBase):
         self.draw = ImageDraw.Draw(self.canvas)
 
         while True:
+            t = time()
 
             ## compute state
             ##
             self.adjust_level()
-            self.spawn_mobs()
+            self.spawn_mobs(t)
 
             ## draw internal canvas
             ##
             self.draw_bg()
-            self.draw_mobs(time())
+            self.draw_mobs(t)
 
             ## write canvas to matrix
             ##
