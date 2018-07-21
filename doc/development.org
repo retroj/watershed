@@ -141,6 +141,23 @@ A Logic Level Shifter is needed because the Pi has 3V pins, but the DotStar take
  - https://www.youtube.com/watch?v=v85H2ZNjc4k
    DotStar light painter with raspberry pi
 
+** DotStar with python3
+*** Adafruit_DotStar_Pi
+
+CPython library for driving DotStar.
+
+ - My forum post about building Adafruit_DotStar_Pi with python3
+   https://forums.adafruit.com/viewtopic.php?f=50&t=131114&p=684663#p684663
+
+ - General guide for updating cpython2 to cpython3
+   http://python3porting.com/cextensions.html
+
+*** APA102_Pi
+
+Pure python library for driving dotstar.
+
+https://github.com/tinue/APA102_Pi
+
 * other example of dripping water effect with led strip
 
 https://www.youtube.com/watch?v=R9wbYRV1AEM
