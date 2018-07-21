@@ -63,6 +63,46 @@ streams: 7.5, 7.5 (maybe +1 foot)
  - HP ELiteDisplay G8R65A8
    - 13.6 x 0.53 x 8.55 in
 
+** switches
+
+The project will have 3 switches (in first version)
+
+ - reset
+ - good activity
+ - bad activity
+
+The switches are a simple normal-open switch made by Baco.
+
+We plan to interface to them with an MCP23017 i2c i/o expander chip.  Even
+though we could probably fit all three switches just onto the Pi, that
+would prevent us from adding more switches in the future, or other
+features that need GPIO pins.  I received advice on the Adafruit forum
+that additional resistors will not be needed with the MCP23017:
+
+ - Wire one pin to GND and the other to the digital input and enable the
+   internal pull-up. The pin will read high when the switch is not pressed
+   and low when it is pressed.
+
+Here is the python library that supports the MCP23017:
+
+https://github.com/adafruit/Adafruit_Python_GPIO
+
+ - configure the pin for input with setup
+ - enable the pull-up using pullup
+ - and then read the value using input (or input_pins)
+
+We will need to poll the switches, as the MCP23017's interrupt capability
+is not yet supported by the Python API.
+
+** RGB Matrix
+
+GPIO Usage:
+ - https://learn.adafruit.com/adafruit-rgb-matrix-plus-real-time-clock-hat-for-raspberry-pi/pinouts#matrix-color-pins
+
+ - the DS1307 Real Time Clock uses GPIO 2,3 i2c with address 0x68
+   (https://learn.adafruit.com/i2c-addresses?view=all#0x68)
+
+
 * safe power-down on power cut
 
 We need a UPS which allows us to do a safe shutdown of the Pi when the
@@ -168,6 +208,10 @@ http://rurandom.org/justintime/index.php?title=WS2811_%22Water_torture%22
 * raspberry pi misc
 ** breakout kits
 *** T-Cobbler
+** i2c
+
+ : $ sudo i2cdetect -y 1
+
 * examples of things i've made in the past
 
 lispforlights humble beginnings
