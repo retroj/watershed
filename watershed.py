@@ -6,20 +6,36 @@ from samplebase import SampleBase
 from PIL import Image, ImageDraw
 from dotstar import Adafruit_DotStar
 
+GREEN = 65536
+RED = 256
+BLUE = 1
 
 class LEDStripSection ():
     offset = 0
     length = 0
     direction = 1
+    voffset = 0
+    vmul = 1
 
-    def __init__ (self, owner, offset, length, direction):
+    def __init__ (self, owner, offset, length, direction, voffset, vmul):
         self.owner = owner
         self.offset = offset
         self.length = length
         self.direction = direction
+        self.voffset = voffset
+        self.vmul = vmul
 
     def set_pixel (self, i, color):
-        self.owner.strip.setPixelColor(self.offset+i, color)
+        if color == 0x00FF00:
+            print(i)
+        i = i * self.vmul + self.voffset
+        if i < 0 or i >= self.length:
+            return
+        if self.direction > 0:
+            i = self.offset + i
+        else:
+            i = self.offset + self.length - 1 - i
+        self.owner.strip.setPixelColor(i, color)
 
 
 
@@ -35,10 +51,11 @@ class LEDStrip ():
         self.strip.begin()
         self.strip.setBrightness(64)
 
-    def add_section (self, name = None, offset = None, length = 0, direction = 1):
+    def add_section (self, name = None, offset = None, length = 0,
+                     direction = 1, voffset = 0, vmul = 1):
         if offset is None:
             offset = self.npixels
-        self.sections[name] = LEDStripSection(self, offset, length, direction)
+        self.sections[name] = LEDStripSection(self, offset, length, direction, voffset, vmul)
         self.npixels = max(self.npixels, offset + length)
 
 
@@ -80,6 +97,7 @@ class Mob ():
 class Pollution (Mob):
     last_spawn = time()
     stripsection = None
+    length = 7 ## length of pollution on strip
 
     def __init__ (self, pond, t):
         super(Pollution, self).__init__(pond, t)
@@ -97,6 +115,13 @@ class Pollution (Mob):
         draw.ellipse((0,0,2,2), fill=(255,0,0))
         return img
 
+    def draw_on_strip (self):
+        s = self.stripsection
+        for i in range(0, self.length):
+            dim = (self.length - i) / self.length
+            s.set_pixel(self.y - i, int(255 * dim) * RED)
+        s.set_pixel(self.y - self.length, 0)
+
 
     ## Public Interface
     ##
@@ -110,11 +135,11 @@ class Pollution (Mob):
         if t > self.spawn_time + 9:
             print("despawning pollution")
             return False
-        if self.y < 0: # strip
-            self.stripsection.set_pixel(abs(self.y) + 1, 0x000000)
-            self.stripsection.set_pixel(abs(self.y), 0x00FF00)
+        if self.y < self.length: # at least part of tail is on strip
+            self.draw_on_strip()
             self.y += 1
-        else:          # matrix
+
+        if self.y >= 0: # matrix
             pond.canvas.paste(self.sprite, (32, 16), self.mask)
         return True
 
@@ -178,9 +203,12 @@ class Pond (SampleBase):
         self.ledstrip = LEDStrip(
             datapin=24, clockpin=25,
             sections=[{ "name": "wave", "length": 37, "direction": -1 },
-                      { "name": "rain", "length": 37, "direction": -1 },
-                      { "name": "good", "length": 37, "direction": 1 },
-                      { "name": "bad", "length": 37, "direction": -1 }])
+                      { "name": "rain", "length": 37, "direction": -1,
+                        "voffset": -1, "vmul": -1 },
+                      { "name": "good", "length": 37, "direction": 1,
+                        "voffset": -1, "vmul": -1 },
+                      { "name": "bad", "length": 37, "direction": -1,
+                        "voffset": -1, "vmul": -1 }])
 
     def update_wave (self, t):
         stripsection = self.ledstrip.sections["wave"]
