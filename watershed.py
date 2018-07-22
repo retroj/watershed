@@ -42,12 +42,12 @@ class LEDStrip ():
         self.npixels = max(self.npixels, offset + length)
 
 
-class Sprites ():
+class AssetManager ():
     assets = {}
 
     @staticmethod
     def get (name, generate=None):
-        if not name in Sprites.assets:
+        if not name in AssetManager.assets:
             if generate:
                 img = generate()
             else:
@@ -56,8 +56,8 @@ class Sprites ():
             sprite = Image.merge("RGB", (r, g, b))
             mask = Image.merge("L", (a,))
             width, height = img.width, img.height
-            Sprites.assets[name] = (sprite, mask, width, height)
-        return Sprites.assets[name]
+            AssetManager.assets[name] = (sprite, mask, width, height)
+        return AssetManager.assets[name]
 
 
 
@@ -79,15 +79,15 @@ class Mob ():
 
 class Pollution (Mob):
     last_spawn = time()
-    strip = None
+    stripsection = None
 
     def __init__ (self, pond, t):
         super(Pollution, self).__init__(pond, t)
         print("spawning pollution "+str(int(t)))
         self.sprite, self.mask, self.width, self.height = \
-            Sprites.get("Pollution", Pollution.draw_sprite)
-        self.strip = pond.ledstrip.sections["bad"]
-        self.y = -(self.strip.length)
+            AssetManager.get("Pollution", Pollution.draw_sprite)
+        self.stripsection = pond.ledstrip.sections["bad"]
+        self.y = -(self.stripsection.length)
         self.x = 40
 
     @staticmethod
@@ -111,8 +111,8 @@ class Pollution (Mob):
             print("despawning pollution")
             return False
         if self.y < 0: # strip
-            self.strip.set_pixel(abs(self.y) + 1, 0x000000)
-            self.strip.set_pixel(abs(self.y), 0x00FF00)
+            self.stripsection.set_pixel(abs(self.y) + 1, 0x000000)
+            self.stripsection.set_pixel(abs(self.y), 0x00FF00)
             self.y += 1
         else:          # matrix
             pond.canvas.paste(self.sprite, (32, 16), self.mask)
@@ -132,10 +132,10 @@ class Fish (Mob):
         self.speed = random() * 6 + 2
         if self.direction == 1:
             self.sprite, self.mask, self.width, self.height = \
-                Sprites.get("assets/sprites/Fish1/Fish1-right.png")
+                AssetManager.get("assets/sprites/Fish1/Fish1-right.png")
         else:
             self.sprite, self.mask, self.width, self.height = \
-                Sprites.get("assets/sprites/Fish1/Fish1-left.png")
+                AssetManager.get("assets/sprites/Fish1/Fish1-left.png")
         self.start_x = -self.width if self.direction == 1 else pond.width
         ##XXX: this math can allow the lower level to be above the upper level,
         ##     resulting in an error
