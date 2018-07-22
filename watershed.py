@@ -182,6 +182,13 @@ class Pond (SampleBase):
                       { "name": "good", "length": 37, "direction": 1 },
                       { "name": "bad", "length": 37, "direction": -1 }])
 
+    def update_wave (self, t):
+        stripsection = self.ledstrip.sections["wave"]
+        length = stripsection.length
+        offset = stripsection.offset
+        for i in range(0, length):
+            color = (i + int(t)) % 2 * 255
+            stripsection.set_pixel(i, color)
 
     def adjust_level (self):
         l = self.level
@@ -235,6 +242,7 @@ class Pond (SampleBase):
 
             ## write led strip
             ##
+            self.update_wave(t)
             self.ledstrip.strip.show()
 
             sleep(0.01)
