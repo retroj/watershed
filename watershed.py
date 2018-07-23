@@ -189,6 +189,7 @@ class Mana (LEDStripMob):
 class Pollution (LEDStripMob):
     last_spawn = time()
     color = (0xff, 0, 0)
+    speed = (-0.2, 5)
 
     def __init__ (self, pond, t):
         super(Pollution, self).__init__(pond, t)
@@ -214,14 +215,14 @@ class Pollution (LEDStripMob):
             return Pollution(pond, t)
 
     def update (self, pond, t):
-        if t > self.spawn_time + 9:
-            print("despawning pollution")
-            return False
         if self.update_coords(t):
             if self.y < self.length: # at least part of tail is on strip
                 self.draw_on_strip()
         if self.y >= 0: # matrix
-            pond.canvas.paste(self.sprite, (32, 16), self.mask)
+            #pond.canvas.paste(self.sprite, (32, 16), self.mask)
+            pond.canvas.putpixel((self.x, self.y), self.color)
+        if self.y >= 31:
+            return False
         return True
 
 
