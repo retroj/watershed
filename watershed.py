@@ -98,9 +98,24 @@ class LEDStripMob (Mob):
     stripsection = None
     color = (0, 0, 0)
     length = 7 ## length of pollution on strip
+    start_position = (0, 0)
+    speed = (0, 5)
 
     def __init__ (self, pond, t):
         super(LEDStripMob, self).__init__(pond, t)
+
+    def update_coords (self, t):
+        x0, y0 = self.start_position
+        sx, sy = self.speed
+        dt = t - self.spawn_time
+        x = int(x0 + sx * dt)
+        y = int(y0 + sy * dt)
+        if x == self.x and y == self.y:
+            return False
+        else:
+            self.x = x
+            self.y = y
+            return True
 
     def dim_color (self, color, dim):
         (r, g, b) = color
@@ -123,7 +138,7 @@ class Rain (LEDStripMob):
         super(Rain, self).__init__(pond, t)
         print("spawning rain "+str(int(t)))
         self.stripsection = pond.ledstrip.sections["rain"]
-        self.y = -(self.stripsection.length)
+        self.start_position = (20, -(self.stripsection.length))
 
     ## Public Interface
     ##
@@ -134,14 +149,41 @@ class Rain (LEDStripMob):
             return Rain(pond, t)
 
     def update (self, pond, t):
-        if t > self.spawn_time + 9:
+        if self.update_coords(t):
+            if self.y < self.length: # at least part of tail is on strip
+                self.draw_on_strip()
+        if self.y >= self.length:
             print("despawning rain")
             return False
-        if self.y < self.length: # at least part of tail is on strip
-            self.draw_on_strip()
-            self.y += 1
         return True
 
+
+class Mana (LEDStripMob):
+    last_spawn = time()
+    color = (0, 0, 0xff)
+
+    def __init__ (self, pond, t):
+        super(Mana, self).__init__(pond, t)
+        print("spawning mana "+str(int(t)))
+        self.stripsection = pond.ledstrip.sections["mana"]
+        self.start_position = (30, -(self.stripsection.length))
+
+    ## Public Interface
+    ##
+    @staticmethod
+    def maybe_spawn (pond, t):
+        if t > Mana.last_spawn + 10:
+            Mana.last_spawn = t
+            return Mana(pond, t)
+
+    def update (self, pond, t):
+        if self.update_coords(t):
+            if self.y < self.length: # at least part of tail is on strip
+                self.draw_on_strip()
+        if self.y >= self.length:
+            print("despawning mana")
+            return False
+        return True
 
 
 class Pollution (LEDStripMob):
@@ -153,9 +195,8 @@ class Pollution (LEDStripMob):
         print("spawning pollution "+str(int(t)))
         self.sprite, self.mask, self.width, self.height = \
             AssetManager.get("Pollution", Pollution.draw_sprite)
-        self.stripsection = pond.ledstrip.sections["bad"]
-        self.y = -(self.stripsection.length)
-        self.x = 40
+        self.stripsection = pond.ledstrip.sections["pollution"]
+        self.start_position = (40, -(self.stripsection.length))
 
     @staticmethod
     def draw_sprite ():
@@ -176,10 +217,9 @@ class Pollution (LEDStripMob):
         if t > self.spawn_time + 9:
             print("despawning pollution")
             return False
-        if self.y < self.length: # at least part of tail is on strip
-            self.draw_on_strip()
-            self.y += 1
-
+        if self.update_coords(t):
+            if self.y < self.length: # at least part of tail is on strip
+                self.draw_on_strip()
         if self.y >= 0: # matrix
             pond.canvas.paste(self.sprite, (32, 16), self.mask)
         return True
@@ -244,9 +284,9 @@ class Pond (SampleBase):
             sections=[{ "name": "wave", "length": 37, "direction": -1 },
                       { "name": "rain", "length": 37, "direction": -1,
                         "voffset": -1, "vmul": -1 },
-                      { "name": "good", "length": 37, "direction": 1,
+                      { "name": "mana", "length": 37, "direction": 1,
                         "voffset": -1, "vmul": -1 },
-                      { "name": "bad", "length": 37, "direction": -1,
+                      { "name": "pollution", "length": 37, "direction": -1,
                         "voffset": -1, "vmul": -1 }])
 
     def update_wave (self, t):
@@ -267,7 +307,7 @@ class Pond (SampleBase):
             self.level_px = int(self.level * -32 + 32)
 
     def spawn_mobs (self, t):
-        for x in [Fish, Pollution, Rain]:
+        for x in [Fish, Rain, Mana, Pollution]:
             f = x.maybe_spawn(self, t)
             if f:
                 self.mobs.append(f)
