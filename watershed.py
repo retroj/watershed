@@ -6,6 +6,7 @@ from samplebase import SampleBase
 from PIL import Image, ImageDraw
 from dotstar import Adafruit_DotStar
 
+## constants for LEDStrip colors
 GREEN = 65536
 RED = 256
 BLUE = 1
@@ -26,8 +27,6 @@ class LEDStripSection ():
         self.vmul = vmul
 
     def set_pixel (self, i, color):
-        if color == 0x00FF00:
-            print(i)
         i = i * self.vmul + self.voffset
         if i < 0 or i >= self.length:
             return
@@ -35,7 +34,8 @@ class LEDStripSection ():
             i = self.offset + i
         else:
             i = self.offset + self.length - 1 - i
-        self.owner.strip.setPixelColor(i, color)
+        (r, g, b) = color
+        self.owner.strip.setPixelColor(i, g * GREEN + r * RED + b * BLUE)
 
 
 
@@ -94,10 +94,59 @@ class Mob ():
         return True
 
 
-class Pollution (Mob):
-    last_spawn = time()
+class LEDStripMob (Mob):
     stripsection = None
+    color = (0, 0, 0)
     length = 7 ## length of pollution on strip
+
+    def __init__ (self, pond, t):
+        super(LEDStripMob, self).__init__(pond, t)
+
+    def dim_color (self, color, dim):
+        (r, g, b) = color
+        return (int(r * dim), int(g * dim), int(b * dim))
+
+    def draw_on_strip (self):
+        s = self.stripsection
+        for i in range(0, self.length):
+            dim = (self.length - i) / self.length
+            c = self.dim_color(self.color, dim)
+            s.set_pixel(self.y - i, c)
+        s.set_pixel(self.y - self.length, (0, 0, 0))
+
+
+class Rain (LEDStripMob):
+    last_spawn = time()
+    color = (0, 0, 0xff)
+
+    def __init__ (self, pond, t):
+        super(Rain, self).__init__(pond, t)
+        print("spawning rain "+str(int(t)))
+        self.stripsection = pond.ledstrip.sections["rain"]
+        self.y = -(self.stripsection.length)
+
+    ## Public Interface
+    ##
+    @staticmethod
+    def maybe_spawn (pond, t):
+        if t > Rain.last_spawn + 10:
+            Rain.last_spawn = t
+            return Rain(pond, t)
+
+    def update (self, pond, t):
+        if t > self.spawn_time + 9:
+            print("despawning rain")
+            return False
+        if self.y < self.length: # at least part of tail is on strip
+            self.draw_on_strip()
+            self.y += 1
+        return True
+
+
+
+class Pollution (LEDStripMob):
+    last_spawn = time()
+    color = (0xff, 0, 0)
 
     def __init__ (self, pond, t):
         super(Pollution, self).__init__(pond, t)
@@ -114,14 +163,6 @@ class Pollution (Mob):
         draw = ImageDraw.Draw(img)
         draw.ellipse((0,0,2,2), fill=(255,0,0))
         return img
-
-    def draw_on_strip (self):
-        s = self.stripsection
-        for i in range(0, self.length):
-            dim = (self.length - i) / self.length
-            s.set_pixel(self.y - i, int(255 * dim) * RED)
-        s.set_pixel(self.y - self.length, 0)
-
 
     ## Public Interface
     ##
@@ -142,8 +183,6 @@ class Pollution (Mob):
         if self.y >= 0: # matrix
             pond.canvas.paste(self.sprite, (32, 16), self.mask)
         return True
-
-
 
 
 class Fish (Mob):
@@ -215,7 +254,7 @@ class Pond (SampleBase):
         length = stripsection.length
         offset = stripsection.offset
         for i in range(0, length):
-            color = (i + int(t)) % 2 * 255
+            color = (0, 0, (i + int(t)) % 2 * 255)
             stripsection.set_pixel(i, color)
 
     def adjust_level (self):
@@ -228,7 +267,7 @@ class Pond (SampleBase):
             self.level_px = int(self.level * -32 + 32)
 
     def spawn_mobs (self, t):
-        for x in [Fish, Pollution]:
+        for x in [Fish, Pollution, Rain]:
             f = x.maybe_spawn(self, t)
             if f:
                 self.mobs.append(f)
