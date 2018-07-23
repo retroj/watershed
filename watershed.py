@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import sys
 from time import sleep, time
 from random import random, randint
 from samplebase import SampleBase
@@ -358,5 +359,11 @@ class Pond (SampleBase):
 
 if __name__ == "__main__":
     pond = Pond()
-    if (not pond.process()):
-        pond.print_help()
+    try:
+        if (not pond.process()):
+            pond.print_help()
+    except KeyboardInterrupt:
+        print("Exiting\n")
+        pond.ledstrip.strip.clear()
+        pond.ledstrip.strip.show()
+        sys.exit(0)
