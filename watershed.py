@@ -18,6 +18,7 @@ class LEDStripSection ():
     direction = 1
     voffset = 0
     vmul = 1
+    buffer = None
 
     def __init__ (self, owner, offset, length, direction, voffset, vmul):
         self.owner = owner
@@ -26,38 +27,49 @@ class LEDStripSection ():
         self.direction = direction
         self.voffset = voffset
         self.vmul = vmul
+        start = offset * 4
+        end = start + length * 4
+        self.buffer = memoryview(owner.buffer)[start:end]
 
     def set_pixel (self, i, color):
         i = i * self.vmul + self.voffset
         if i < 0 or i >= self.length:
             return
-        if self.direction > 0:
-            i = self.offset + i
-        else:
-            i = self.offset + self.length - 1 - i
+        if self.direction < 0:
+            i = self.length - 1 - i
+        i *= 4
         (r, g, b) = color
-        self.owner.strip.setPixelColor(i, g * GREEN + r * RED + b * BLUE)
-
+        self.buffer[i+1:i+4] = bytearray((b, g, r))
 
 
 class LEDStrip ():
-    sections = None
     npixels = 0
     strip = None
+    buffer = None
+    sections = None
+
     def __init__ (self, datapin=24, clockpin=25, sections=[]):
-        self.sections = {}
-        for i,spec in enumerate(sections):
-            self.add_section(**spec)
+        self.npixels = self.calc_npixels(sections)
         self.strip = Adafruit_DotStar(self.npixels, datapin, clockpin)
+        self.buffer = bytearray(self.npixels * 4)
+        for i in range(0, self.npixels):
+            self.buffer[i * 4] = 0xff
+        self.sections = {}
+        for spec in sections:
+            self.add_section(**spec)
         self.strip.begin()
-        self.strip.setBrightness(64)
+
+    def calc_npixels (self, sections):
+        npixels = 0
+        for spec in sections:
+            if not "offset" in spec or spec["offset"] is None:
+                spec["offset"] = npixels
+            npixels = max(npixels, spec["offset"] + spec["length"])
+        return npixels
 
     def add_section (self, name = None, offset = None, length = 0,
                      direction = 1, voffset = 0, vmul = 1):
-        if offset is None:
-            offset = self.npixels
         self.sections[name] = LEDStripSection(self, offset, length, direction, voffset, vmul)
-        self.npixels = max(self.npixels, offset + length)
 
 
 class AssetManager ():
@@ -268,6 +280,39 @@ class Fish (Mob):
         return True
 
 
+class Wave ():
+    interval = 0.2
+    last_update = 0
+    owner = None
+    stripsection = None
+    buffersize = 0
+    tmp = None
+
+    def __init__ (self, owner):
+        self.owner = owner
+        self.stripsection = owner.ledstrip.sections["wave"]
+        length = self.stripsection.length
+        offset = self.stripsection.offset
+        for i in range(0, length):
+            color = (0, 0, 255 if i % 4 == 0 else 0)
+            self.stripsection.set_pixel(i, color)
+        self.buffersize = length * 4
+        self.tmp = bytearray(4)
+        self.fst = memoryview(self.stripsection.buffer)[0:4]
+        self.fr = memoryview(self.stripsection.buffer)[4:self.buffersize]
+        self.to = memoryview(self.stripsection.buffer)[0:self.buffersize - 4]
+        self.lst = memoryview(self.stripsection.buffer)[self.buffersize - 4:]
+        last_update = time()
+
+    def update (self, t):
+        if t < self.last_update + self.interval:
+            return
+        self.last_update = time()
+        self.tmp[:] = self.fst[:]
+        self.to[:] = self.fr[:]
+        self.lst[:] = self.tmp[:]
+
+
 class Pond (SampleBase):
     ledstrip = None
     width = 0
@@ -290,14 +335,7 @@ class Pond (SampleBase):
                         "voffset": -1, "vmul": -1 },
                       { "name": "pollution", "length": 37, "direction": -1,
                         "voffset": -1, "vmul": -1 }])
-
-    def update_wave (self, t):
-        stripsection = self.ledstrip.sections["wave"]
-        length = stripsection.length
-        offset = stripsection.offset
-        for i in range(0, length):
-            color = (0, 0, (i + int(t)) % 2 * 255)
-            stripsection.set_pixel(i, color)
+        self.wave = Wave(self)
 
     def adjust_level (self):
         l = self.level
@@ -351,8 +389,8 @@ class Pond (SampleBase):
 
             ## write led strip
             ##
-            self.update_wave(t)
-            self.ledstrip.strip.show()
+            self.wave.update(t)
+            self.ledstrip.strip.show(self.ledstrip.buffer)
 
             sleep(0.01)
 
