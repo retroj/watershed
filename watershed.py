@@ -6,6 +6,8 @@ from random import random, randint
 from samplebase import SampleBase
 from PIL import Image, ImageDraw
 from dotstar import Adafruit_DotStar
+import Adafruit_GPIO as GPIO
+from Adafruit_GPIO.MCP230xx import MCP23017
 
 ## constants for LEDStrip colors
 GREEN = 65536
@@ -227,11 +229,15 @@ class Pollution (LEDStripMob):
             Pollution.last_spawn = t
             return Pollution(pond, t)
 
+    @staticmethod
+    def definitely_spawn (pond, t):
+        pond.mobs.append(Pollution(pond, t))
+
     def update (self, pond, t):
         if self.update_coords(t):
             if self.y < self.length: # at least part of tail is on strip
                 self.draw_on_strip()
-        if self.y >= 0: # matrix
+        if self.y >= 0 and self.y < 32: # matrix
             #pond.canvas.paste(self.sprite, (32, 16), self.mask)
             pond.canvas.putpixel((self.x, self.y), self.color)
         if self.y >= 31:
@@ -313,8 +319,33 @@ class Wave ():
         self.lst[:] = self.tmp[:]
 
 
+class Switches (MCP23017):
+    last_poll = None
+    bindings = None
+
+    def __init__ (self, *args, **kwargs):
+        super(Switches, self).__init__(*args, **kwargs)
+        self.last_poll = tuple([True for _ in range(0, 16)])
+        self.bindings = {}
+        for i in range(0, 16):
+            self.setup(i, GPIO.IN)
+            self.pullup(i, True)
+
+    def poll (self):
+        state = self.input_pins(range(0, 16))
+        for i,(now,prev) in enumerate(zip(state, self.last_poll)):
+            if now is False and prev is True:
+                if i in self.bindings:
+                    self.bindings[i]()
+        self.last_poll = state
+
+    def bind (self, i, thunk):
+        self.bindings[i] = thunk
+
+
 class Pond (SampleBase):
     ledstrip = None
+    switches = None
     width = 0
     height = 0
     canvas = None
@@ -326,6 +357,8 @@ class Pond (SampleBase):
     def __init__ (self, *args, **kwargs):
         super(Pond, self).__init__(*args, **kwargs)
         self.mobs = []
+        self.switches = Switches(address = 0x20)
+        self.switches.bind(7, lambda: Pollution.definitely_spawn(self, time()))
         self.ledstrip = LEDStrip(
             datapin=24, clockpin=25,
             sections=[{ "name": "wave", "length": 37, "direction": -1 },
@@ -347,7 +380,7 @@ class Pond (SampleBase):
             self.level_px = int(self.level * -32 + 32)
 
     def spawn_mobs (self, t):
-        for x in [Fish, Rain, Mana, Pollution]:
+        for x in [Fish, Rain, Mana]:
             f = x.maybe_spawn(self, t)
             if f:
                 self.mobs.append(f)
@@ -371,6 +404,8 @@ class Pond (SampleBase):
 
         while True:
             t = time()
+
+            self.switches.poll()
 
             ## compute state
             ##
