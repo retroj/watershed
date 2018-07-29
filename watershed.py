@@ -2,7 +2,7 @@
 
 import sys
 from time import sleep, time
-from random import random, randint
+from random import random, randint, getrandbits
 from samplebase import SampleBase
 from PIL import Image, ImageDraw
 from dotstar import Adafruit_DotStar
@@ -107,6 +107,10 @@ class Mob ():
 
     def update (self, pond, t):
         return True
+
+    @staticmethod
+    def init_static ():
+        pass
 
 
 class LEDStripMob (Mob):
@@ -246,40 +250,52 @@ class Pollution (LEDStripMob):
 
 
 class Fish (Mob):
-    start_x = 0
-    direction = 0
-    speed = 0
+    width = 0
+    height = 0
+    start_position = (0, 0)
+    speed = (0, 5)
 
-    def __init__ (self, pond, t):
+    def __init__ (self, pond, t, y):
         super(Fish, self).__init__(pond, t)
-        self.direction = 1 if random() < 0.5 else -1
-        self.speed = random() * 6 + 2
-        if self.direction == 1:
+        direction = bool(getrandbits(1))
+        if direction:
             self.sprite, self.mask, self.width, self.height = \
                 AssetManager.get("assets/sprites/Fish1/Fish1-right.png")
+            start_x = -self.width
+            self.speed = (random() * 6 + 2, 0)
         else:
             self.sprite, self.mask, self.width, self.height = \
                 AssetManager.get("assets/sprites/Fish1/Fish1-left.png")
-        self.start_x = -self.width if self.direction == 1 else pond.width
-        ##XXX: this math can allow the lower level to be above the upper level,
-        ##     resulting in an error
-        self.y = randint(pond.level_px + self.height * 0.5, pond.height - self.height * 1.5)
+            start_x = pond.width
+            self.speed = (-(random() * 6 + 2), 0)
+        self.start_position = (start_x, y)
 
 
     ## Public Interface
     ##
     @staticmethod
+    def init_static ():
+        _, _, Fish.width, Fish.height = \
+            AssetManager.get("assets/sprites/Fish1/Fish1-right.png")
+
+    @staticmethod
     def maybe_spawn (pond, t):
-        if pond.level > 0.5 and pond.health > 0.5 and random() < 0.001:
+        ymin = pond.level_px + Fish.height * 0.5
+        ymax = pond.height - Fish.height * 1.5
+        if random() * pond.health < 0.001 and pond.health > 0.3 and ymin < ymax:
             print("spawning fish")
-            return Fish(pond, t)
+            return Fish(pond, t, randint(ymin, ymax))
 
     def update (self, pond, t):
-        self.x = int(self.start_x + self.speed * self.direction * (t - self.spawn_time))
-        if self.direction == 1 and self.x >= pond.width:
+        (x0, y0) = self.start_position
+        (sx, sy) = self.speed
+        dt = t - self.spawn_time
+        self.x = int(x0 + sx * dt)
+        self.y = int(y0 + sy * dt)
+        if sx > 0 and self.x >= pond.width:
             print("despawning fish")
             return False
-        elif self.direction == -1 and self.x < -self.width:
+        elif sx < 0 and self.x < -self.width:
             print("despawning fish")
             return False
         pond.canvas.paste(self.sprite, (self.x, self.y), self.mask)
@@ -344,6 +360,7 @@ class Switches (MCP23017):
 
 
 class Pond (SampleBase):
+    active_spawners = [Fish, Rain, Mana]
     ledstrip = None
     switches = None
     width = 0
@@ -356,6 +373,8 @@ class Pond (SampleBase):
 
     def __init__ (self, *args, **kwargs):
         super(Pond, self).__init__(*args, **kwargs)
+        for spawner in self.active_spawners:
+            spawner.init_static()
         self.mobs = []
         self.switches = Switches(address = 0x20)
         self.switches.bind(7, lambda: Pollution.definitely_spawn(self, time()))
@@ -373,14 +392,16 @@ class Pond (SampleBase):
     def adjust_level (self):
         l = self.level
         rand = random()
-        if rand < 0.001:
-            sign = 1 if rand >= 0.0005 else -1
+        threshold = 0.001
+        if rand < threshold:
+            sign = 1 if rand >= threshold * 0.5 else -1
             l = l + 1/32.0 * sign
-            self.level = max(min(l, 1.0), 0.0)
+            self.level = max(min(l, 0.9), 0.4)
             self.level_px = int(self.level * -32 + 32)
+            print("level: {}     px: {}".format(self.level, self.level_px))
 
     def spawn_mobs (self, t):
-        for x in [Fish, Rain, Mana]:
+        for x in self.active_spawners:
             f = x.maybe_spawn(self, t)
             if f:
                 self.mobs.append(f)

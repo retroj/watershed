@@ -21,9 +21,38 @@ streams: 7.5, 7.5 (maybe +1 foot)
      the drip hits.
 
 * todos
-** TODO learn Python API for DotStar
+** TODO drain + reset switch
+:LOGBOOK:
+- State -> "TODO"  [2018-07-29 Sun]
+:END:
+** TODO mud
+:LOGBOOK:
+- State -> "TODO"  [2018-07-29 Sun]
+:END:
+** TODO pollution different speed when it hits water
+:LOGBOOK:
+- State -> "TODO"  [2018-07-29 Sun]
+:END:
+** TODO pollution trail when in air region on matrix
+:LOGBOOK:
+- State -> "TODO"  [2018-07-29 Sun]
+:END:
+** TODO fish Y coord
+:LOGBOOK:
+- State -> "TODO"  [2018-07-29 Sun]
+:END:
+** TODO range and rate for pond level to change
+:LOGBOOK:
+- State -> "TODO"  [2018-07-29 Sun]
+:END:
+** TODO safe power cut, auto-power on
+:LOGBOOK:
+- State -> "TODO"  [2018-07-29 Sun]
+:END:
+** DONE learn Python API for DotStar
 :LOGBOOK:
 - State -> "TODO"  [2018-06-23 Sat]
+- State -> "DONE"  [2018-07-29 Sun]
 :END:
 * components
 
@@ -101,7 +130,6 @@ GPIO Usage:
 
  - the DS1307 Real Time Clock uses GPIO 2,3 i2c with address 0x68
    (https://learn.adafruit.com/i2c-addresses?view=all#0x68)
-
 
 * safe power-down on power cut
 
