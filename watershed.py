@@ -307,9 +307,8 @@ class Wave ():
     buffersize = 0
     tmp = None
 
-    def __init__ (self, owner):
-        self.owner = owner
-        self.stripsection = owner.ledstrip.sections["wave"]
+    def __init__ (self, stripsection):
+        self.stripsection = stripsection
         length = self.stripsection.length
         offset = self.stripsection.offset
         for i in range(0, length):
@@ -385,7 +384,7 @@ class Pond (SampleBase):
                         "voffset": -1, "vmul": -1 },
                       { "name": "pollution", "length": 37, "direction": -1,
                         "voffset": -1, "vmul": -1 }])
-        self.wave = Wave(self)
+        self.wave = Wave(self.ledstrip.sections["wave"])
 
     def adjust_level (self):
         l = self.level
