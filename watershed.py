@@ -310,7 +310,6 @@ class Wave ():
     def __init__ (self, stripsection):
         self.stripsection = stripsection
         length = self.stripsection.length
-        offset = self.stripsection.offset
         for i in range(0, length):
             color = (0, 0, 255 if i % 4 == 0 else 0)
             self.stripsection.set_pixel(i, color)
