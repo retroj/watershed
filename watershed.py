@@ -185,10 +185,8 @@ class Mana (LEDStripMob):
     ## Public Interface
     ##
     @staticmethod
-    def maybe_spawn (pond, t):
-        if t > Mana.last_spawn + 10:
-            Mana.last_spawn = t
-            return Mana(pond, t)
+    def definitely_spawn (pond, t):
+        pond.mobs.append(Mana(pond, t))
 
     def update (self, pond, t):
         (x1, y1) = self.position
@@ -207,77 +205,30 @@ class Pollution (LEDStripMob):
     color = (0xff, 0, 0)
     airspeed = (-1.5, 8)
     waterspeed = (0, 5)
+    matrix_trail = None
 
     def __init__ (self, pond, t):
         super(Pollution, self).__init__(pond, t)
         print("spawning pollution "+str(int(t)))
-        self.sprite, self.mask, self.width, self.height = \
-            AssetManager.get("Pollution", Pollution.draw_sprite)
         self.stripsection = pond.ledstrip.sections["pollution"]
         self.start_position = (40, -(self.stripsection.length))
         self.speed = self.airspeed
-
-    @staticmethod
-    def draw_sprite ():
-        length_on_matrix = Pollution.length * 3
-        sx, sy = Pollution.airspeed
-        factor = length_on_matrix / sqrt(sx**2 + sy**2)
-        width = int(max(1, ceil(factor * abs(sx))))
-        height = int(max(1, ceil(factor * abs(sy))))
-        img = Image.new("RGBA", (width, height))
-        xmax = width - 1
-        for y in range(0, height):
-            if height == 1:
-                r = 1.0
-            else:
-                r = y / (height - 1)
-            x = int(floor((abs(sx) / abs(sy)) * y))
-            if sx < 0:
-                x = xmax - x
-            img.putpixel((x, y), (255, 0, 0, int(ceil(255 * r))))
-        return img
+        self.matrix_trail = []
 
     def draw_on_matrix (self, pond, t):
-        length = self.length * 3 ## matrix pixels are closer together
-        ## above water level
-        ##
-        x0, y0 = self.start_position
-        sx, sy = self.airspeed
-        dt = t - self.spawn_time
-        x1 = int(x0 + sx * dt)
-        y1 = int(y0 + sy * dt)
-        if sx > 0:
-            x1 -= self.width
-        y1 -= self.height
-
-        print("{} {}".format(x1, y1))
-        ## now how much of the sprite do we draw?
-        how_many_vertical_pixels_to_draw = pond.level_px - y1
-
-        if how_many_vertical_pixels_to_draw > 0:
-            pond.canvas.paste(self.sprite, (x1, y1), self.mask)
-
-        ## is any of the particle's length above water level, given its
-        ## airspeed?
-
-        ## we need to compute the coordinates of the whole tail.
-
-
-        ## below water level
-        ##
-
-        # (x, y) = self.position
-        # pond.canvas.putpixel(self.position, self.color)
+        trail_length = len(self.matrix_trail)
+        for i,((tx,ty),tt) in enumerate(self.matrix_trail):
+            red = int(i / trail_length * 255 - (t - tt) * 150)
+            if red > 0:
+                pond.canvas.putpixel((tx, ty), (red, 0, 0))
+        pond.canvas.putpixel(self.position, self.color)
+        x, y = self.position
+        if y < pond.level_px:
+            self.matrix_trail.append((self.position, t))
 
 
     ## Public Interface
     ##
-    @staticmethod
-    def maybe_spawn (pond, t):
-        if t > Pollution.last_spawn + 10:
-            Pollution.last_spawn = t
-            return Pollution(pond, t)
-
     @staticmethod
     def definitely_spawn (pond, t):
         pond.mobs.append(Pollution(pond, t))
@@ -406,7 +357,7 @@ class Switches (MCP23017):
 
 
 class Pond (SampleBase):
-    active_spawners = [Fish, Rain, Mana]
+    active_spawners = [Fish, Rain]
     ledstrip = None
     switches = None
     width = 0
@@ -423,6 +374,7 @@ class Pond (SampleBase):
             spawner.init_static()
         self.mobs = []
         self.switches = Switches(address = 0x20)
+        self.switches.bind(6, lambda: Mana.definitely_spawn(self, time()))
         self.switches.bind(7, lambda: Pollution.definitely_spawn(self, time()))
         self.ledstrip = LEDStrip(
             datapin=24, clockpin=25,
