@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import sys
+from math import *
 from time import sleep, time
 from random import random, randint, getrandbits
 from samplebase import SampleBase
@@ -9,10 +10,6 @@ from dotstar import Adafruit_DotStar
 import Adafruit_GPIO as GPIO
 from Adafruit_GPIO.MCP230xx import MCP23017
 
-## constants for LEDStrip colors
-GREEN = 65536
-RED = 256
-BLUE = 1
 
 class LEDStripSection ():
     offset = 0
@@ -99,14 +96,22 @@ class Mob ():
     mask = None
     width = 0
     height = 0
-    x = 0
-    y = 0
+    position = (0, 0)
+    start_position = (0, 0)
+    speed = (0, 5)
 
     def __init__ (self, pond, t):
         self.spawn_time = t
 
     def update (self, pond, t):
         return True
+
+    def update_position (self, t):
+        x0, y0 = self.start_position
+        sx, sy = self.speed
+        dt = t - self.spawn_time
+        self.position = (int(x0 + sx * dt), int(y0 + sy * dt))
+        return self.position
 
     @staticmethod
     def init_static ():
@@ -123,30 +128,18 @@ class LEDStripMob (Mob):
     def __init__ (self, pond, t):
         super(LEDStripMob, self).__init__(pond, t)
 
-    def update_coords (self, t):
-        x0, y0 = self.start_position
-        sx, sy = self.speed
-        dt = t - self.spawn_time
-        x = int(x0 + sx * dt)
-        y = int(y0 + sy * dt)
-        if x == self.x and y == self.y:
-            return False
-        else:
-            self.x = x
-            self.y = y
-            return True
-
     def dim_color (self, color, dim):
         (r, g, b) = color
         return (int(r * dim), int(g * dim), int(b * dim))
 
     def draw_on_strip (self):
         s = self.stripsection
+        x, y = self.position
         for i in range(0, self.length):
             dim = (self.length - i) / self.length
             c = self.dim_color(self.color, dim)
-            s.set_pixel(self.y - i, c)
-        s.set_pixel(self.y - self.length, (0, 0, 0))
+            s.set_pixel(y - i, c)
+        s.set_pixel(y - self.length, (0, 0, 0))
 
 
 class Rain (LEDStripMob):
@@ -168,10 +161,12 @@ class Rain (LEDStripMob):
             return Rain(pond, t)
 
     def update (self, pond, t):
-        if self.update_coords(t):
-            if self.y < self.length: # at least part of tail is on strip
+        (x1, y1) = self.position
+        (x2, y2) = self.update_position(t)
+        if x2 != x1 or y2 != y1:
+            if y2 < self.length: # at least part of tail is on strip
                 self.draw_on_strip()
-        if self.y >= self.length:
+        if y2 >= self.length:
             print("despawning rain")
             return False
         return True
@@ -196,10 +191,12 @@ class Mana (LEDStripMob):
             return Mana(pond, t)
 
     def update (self, pond, t):
-        if self.update_coords(t):
-            if self.y < self.length: # at least part of tail is on strip
+        (x1, y1) = self.position
+        (x2, y2) = self.update_position(t)
+        if x2 != x1 or y2 != y1:
+            if y2 < self.length: # at least part of tail is on strip
                 self.draw_on_strip()
-        if self.y >= self.length:
+        if y2 >= self.length:
             print("despawning mana")
             return False
         return True
@@ -208,7 +205,8 @@ class Mana (LEDStripMob):
 class Pollution (LEDStripMob):
     last_spawn = time()
     color = (0xff, 0, 0)
-    speed = (-0.2, 5)
+    airspeed = (-1.5, 8)
+    waterspeed = (0, 5)
 
     def __init__ (self, pond, t):
         super(Pollution, self).__init__(pond, t)
@@ -217,13 +215,60 @@ class Pollution (LEDStripMob):
             AssetManager.get("Pollution", Pollution.draw_sprite)
         self.stripsection = pond.ledstrip.sections["pollution"]
         self.start_position = (40, -(self.stripsection.length))
+        self.speed = self.airspeed
 
     @staticmethod
     def draw_sprite ():
-        img = Image.new("RGBA", (3, 3))
-        draw = ImageDraw.Draw(img)
-        draw.ellipse((0,0,2,2), fill=(255,0,0))
+        length_on_matrix = Pollution.length * 3
+        sx, sy = Pollution.airspeed
+        factor = length_on_matrix / sqrt(sx**2 + sy**2)
+        width = int(max(1, ceil(factor * abs(sx))))
+        height = int(max(1, ceil(factor * abs(sy))))
+        img = Image.new("RGBA", (width, height))
+        xmax = width - 1
+        for y in range(0, height):
+            if height == 1:
+                r = 1.0
+            else:
+                r = y / (height - 1)
+            x = int(floor((abs(sx) / abs(sy)) * y))
+            if sx < 0:
+                x = xmax - x
+            img.putpixel((x, y), (255, 0, 0, int(ceil(255 * r))))
         return img
+
+    def draw_on_matrix (self, pond, t):
+        length = self.length * 3 ## matrix pixels are closer together
+        ## above water level
+        ##
+        x0, y0 = self.start_position
+        sx, sy = self.airspeed
+        dt = t - self.spawn_time
+        x1 = int(x0 + sx * dt)
+        y1 = int(y0 + sy * dt)
+        if sx > 0:
+            x1 -= self.width
+        y1 -= self.height
+
+        print("{} {}".format(x1, y1))
+        ## now how much of the sprite do we draw?
+        how_many_vertical_pixels_to_draw = pond.level_px - y1
+
+        if how_many_vertical_pixels_to_draw > 0:
+            pond.canvas.paste(self.sprite, (x1, y1), self.mask)
+
+        ## is any of the particle's length above water level, given its
+        ## airspeed?
+
+        ## we need to compute the coordinates of the whole tail.
+
+
+        ## below water level
+        ##
+
+        # (x, y) = self.position
+        # pond.canvas.putpixel(self.position, self.color)
+
 
     ## Public Interface
     ##
@@ -238,13 +283,17 @@ class Pollution (LEDStripMob):
         pond.mobs.append(Pollution(pond, t))
 
     def update (self, pond, t):
-        if self.update_coords(t):
-            if self.y < self.length: # at least part of tail is on strip
+        (x1, y1) = self.position
+        (x2, y2) = self.update_position(t)
+        # if y2 >= pond.level_px:
+        #     self.speed = self.waterspeed
+        if x2 != x1 or y2 != y1:
+            if y2 < self.length: # at least part of tail is on strip
                 self.draw_on_strip()
-        if self.y >= 0 and self.y < 32: # matrix
-            #pond.canvas.paste(self.sprite, (32, 16), self.mask)
-            pond.canvas.putpixel((self.x, self.y), self.color)
-        if self.y >= 31:
+        if y2 >= 0 and y2 < pond.height: # matrix
+            self.draw_on_matrix(pond, t)
+        if y2 >= pond.height:
+            print("despawning pollution")
             return False
         return True
 
@@ -287,18 +336,15 @@ class Fish (Mob):
             return Fish(pond, t, randint(ymin, ymax))
 
     def update (self, pond, t):
-        (x0, y0) = self.start_position
+        (x, y) = self.update_position(t)
         (sx, sy) = self.speed
-        dt = t - self.spawn_time
-        self.x = int(x0 + sx * dt)
-        self.y = int(y0 + sy * dt)
-        if sx > 0 and self.x >= pond.width:
+        if sx > 0 and x >= pond.width:
             print("despawning fish")
             return False
-        elif sx < 0 and self.x < -self.width:
+        elif sx < 0 and x < -self.width:
             print("despawning fish")
             return False
-        pond.canvas.paste(self.sprite, (self.x, self.y), self.mask)
+        pond.canvas.paste(self.sprite, self.position, self.mask)
         return True
 
 
@@ -398,7 +444,6 @@ class Pond (SampleBase):
             l = l + 1/32.0 * sign
             self.level = max(min(l, 0.9), 0.4)
             self.level_px = int(self.level * -32 + 32)
-            print("level: {}     px: {}".format(self.level, self.level_px))
 
     def spawn_mobs (self, t):
         for x in self.active_spawners:
@@ -422,6 +467,7 @@ class Pond (SampleBase):
         self.height = double_buffer.height
         self.canvas = Image.new("RGB", (self.width, self.height))
         self.draw = ImageDraw.Draw(self.canvas)
+        self.level_px = int(self.level * -32 + 32)
 
         while True:
             t = time()
