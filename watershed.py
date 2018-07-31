@@ -407,7 +407,7 @@ class Pond (SampleBase):
         """draw the pond onto self.canvas up to the level represented by self.level"""
         w, h = self.width, self.height
         level_px = int(self.level * -32 + 32)
-        self.draw.rectangle((0,0,w-1,level_px-1), "#000033")
+        #self.draw.rectangle((0,0,w-1,level_px-1), "#000033")
         self.draw.rectangle((0,level_px,w-1,h-1), "#0000aa")
 
     def draw_mobs (self, t):
