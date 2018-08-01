@@ -219,9 +219,10 @@ class Pollution (LEDStripMob):
     def draw_on_matrix (self, pond, t):
         trail_length = len(self.matrix_trail)
         for i,((tx,ty),tt) in enumerate(self.matrix_trail):
-            red = int(i / trail_length * 255 - (t - tt) * 150)
-            if red > 0:
-                pond.canvas.putpixel((tx, ty), (red, 0, 0))
+            if ty < pond.level_px:
+                red = int(i / trail_length * 255 - (t - tt) * 150)
+                if red > 0:
+                    pond.canvas.putpixel((tx, ty), (red, 0, 0))
         pond.canvas.putpixel(self.position, self.color)
         x, y = self.position
         if y < pond.level_px:
