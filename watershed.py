@@ -247,6 +247,7 @@ class Pollution (LEDStripMob):
             self.draw_on_matrix(pond, t)
         if y2 >= pond.height:
             print("despawning pollution")
+            pond.pollution += 1
             return False
         return True
 
@@ -322,7 +323,9 @@ class Wave ():
         last_update = time()
 
     def get_color_for_pixel (self, i):
-        b = int((sin(i / self.tilelength * tau) * 0.5 + 0.5) * 255)
+        ## to lower the troughs, use a higher exponent.
+        norm = (sin(i / self.tilelength * tau) * 0.5 + 0.5) ** 2
+        b = int(norm * 255)
         return (0, 0, b)
 
     def update (self, t):
@@ -366,6 +369,7 @@ class Pond (SampleBase):
     width = 0
     height = 0
     canvas = None
+    pollution = 0
     health = 1.0
     level = 0.7
     level_px = 0
@@ -408,10 +412,22 @@ class Pond (SampleBase):
 
     def draw_bg (self):
         """draw the pond onto self.canvas up to the level represented by self.level"""
+        self.health = max(0.0, min(1.0, 1.0 - self.pollution / 100))
+        healthycolor = (0, 0, 0xaa)
+        pollutedcolor = (0xaa, 0xaa, 0)
+        color = [int((a - b) * self.health + b)
+                 for a,b in zip(healthycolor, pollutedcolor)]
+        colorname = "rgb({},{},{})".format(*color)
         w, h = self.width, self.height
         level_px = int(self.level * -32 + 32)
-        #self.draw.rectangle((0,0,w-1,level_px-1), "#000033")
-        self.draw.rectangle((0,level_px,w-1,h-1), "#0000aa")
+        self.draw.rectangle((0,0,w-1,level_px-1), "#000000")
+        self.draw.rectangle((0,level_px,w-1,h-1), colorname)
+
+        if self.pollution > 0:
+            pollutioncenter = 28
+            pollutionleft = int(pollutioncenter - self.pollution / 2)
+            self.draw.line((pollutionleft, h-1,
+                            pollutionleft + self.pollution - 1, h-1), "#ff0000")
 
     def draw_mobs (self, t):
         self.mobs = [mob for mob in self.mobs if mob.update(self, t)]
