@@ -10,6 +10,7 @@ from dotstar import Adafruit_DotStar
 import Adafruit_GPIO as GPIO
 from Adafruit_GPIO.MCP230xx import MCP23017
 
+tau = asin(1.0) * 4 ## not needed if python >= 3.6
 
 class LEDStripSection ():
     offset = 0
@@ -300,34 +301,37 @@ class Fish (Mob):
 
 
 class Wave ():
+    length = 0
     interval = 0.2
     last_update = 0
-    owner = None
     stripsection = None
-    buffersize = 0
-    tmp = None
+    tilelength = 16
+    tileoffset = 0
 
     def __init__ (self, stripsection):
         self.stripsection = stripsection
         length = self.stripsection.length
+        self.tileoffset = length - 1 % self.tilelength
         for i in range(0, length):
-            color = (0, 0, 255 if i % 4 == 0 else 0)
-            self.stripsection.set_pixel(i, color)
-        self.buffersize = length * 4
-        self.tmp = bytearray(4)
-        self.fst = memoryview(self.stripsection.buffer)[0:4]
-        self.fr = memoryview(self.stripsection.buffer)[4:self.buffersize]
-        self.to = memoryview(self.stripsection.buffer)[0:self.buffersize - 4]
-        self.lst = memoryview(self.stripsection.buffer)[self.buffersize - 4:]
+            self.stripsection.set_pixel(i, self.get_color_for_pixel(i))
+        buffersize = length * 4
+        self.fr = memoryview(self.stripsection.buffer)[4:buffersize]
+        self.to = memoryview(self.stripsection.buffer)[0:buffersize - 4]
+        self.lst = memoryview(self.stripsection.buffer)[buffersize - 4:]
         last_update = time()
+
+    def get_color_for_pixel (self, i):
+        b = int((sin(i / self.tilelength * tau) * 0.5 + 0.5) * 255)
+        return (0, 0, b)
 
     def update (self, t):
         if t < self.last_update + self.interval:
             return
         self.last_update = time()
-        self.tmp[:] = self.fst[:]
         self.to[:] = self.fr[:]
-        self.lst[:] = self.tmp[:]
+        self.tileoffset = (self.tileoffset + 1) % self.tilelength
+        (r, g, b) = self.get_color_for_pixel(self.tileoffset)
+        self.lst[1:] = bytearray((b, g, r))
 
 
 class Switches (MCP23017):
