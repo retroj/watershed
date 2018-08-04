@@ -203,7 +203,7 @@ class Mana (LEDStripMob):
 
 class Pollution (LEDStripMob):
     last_spawn = time()
-    color = (0xff, 0, 0)
+    color = (0xaa, 0, 0)
     airspeed = (-1.5, 8)
     waterspeed = (0, 5)
     matrix_trail = None
@@ -220,7 +220,7 @@ class Pollution (LEDStripMob):
         trail_length = len(self.matrix_trail)
         for i,((tx,ty),tt) in enumerate(self.matrix_trail):
             if ty < pond.level_px:
-                red = int(i / trail_length * 255 - (t - tt) * 150)
+                red = int(i / trail_length * 200 - (t - tt) * 150)
                 if red > 0:
                     pond.canvas.putpixel((tx, ty), (red, 0, 0))
         pond.canvas.putpixel(self.position, self.color)
@@ -413,8 +413,8 @@ class Pond (SampleBase):
     def draw_bg (self):
         """draw the pond onto self.canvas up to the level represented by self.level"""
         self.health = max(0.0, min(1.0, 1.0 - self.pollution / 100))
-        healthycolor = (0, 0, 0xaa)
-        pollutedcolor = (0xaa, 0xaa, 0)
+        healthycolor = (0, 0, 0x88)
+        pollutedcolor = (0x66, 0x66, 0)
         color = [int((a - b) * self.health + b)
                  for a,b in zip(healthycolor, pollutedcolor)]
         colorname = "rgb({},{},{})".format(*color)
@@ -427,7 +427,7 @@ class Pond (SampleBase):
             pollutioncenter = 28
             pollutionleft = int(pollutioncenter - self.pollution / 2)
             self.draw.line((pollutionleft, h-1,
-                            pollutionleft + self.pollution - 1, h-1), "#ff0000")
+                            pollutionleft + self.pollution - 1, h-1), "#aa0000")
 
     def draw_mobs (self, t):
         self.mobs = [mob for mob in self.mobs if mob.update(self, t)]
