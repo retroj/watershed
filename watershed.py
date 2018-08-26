@@ -385,6 +385,7 @@ class Pond (SampleBase):
         self.switches.bind(7, lambda: Pollution.definitely_spawn(self, time()))
         self.ledstrip = LEDStrip(
             datapin=24, clockpin=25,
+            ## single strip
             sections=[{ "name": "wave", "length": 37, "direction": -1 },
                       { "name": "rain", "length": 37, "direction": -1,
                         "voffset": -1, "vmul": -1 },
@@ -392,6 +393,14 @@ class Pond (SampleBase):
                         "voffset": -1, "vmul": -1 },
                       { "name": "pollution", "length": 37, "direction": -1,
                         "voffset": -1, "vmul": -1 }])
+            ## full
+            # sections=[{ "name": "wave", "length": 37, "direction": -1 },
+            #           { "name": "rain", "length": 37, "direction": -1,
+            #             "voffset": -1, "vmul": -1 },
+            #           { "name": "mana", "offset": 150, "length": 65, "direction": 1,
+            #             "voffset": -1, "vmul": -1 },
+            #           { "name": "pollution", "offset": 215, "length": 66, "direction": -1,
+            #             "voffset": -1, "vmul": -1 }])
         self.wave = Wave(self.ledstrip.sections["wave"])
 
     def adjust_level (self):
