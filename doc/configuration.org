@@ -34,6 +34,8 @@ https://rmoff.net/2016/07/18/configuring-ups-apcupsd/
  : ## DEVICE should be blank
  : DEVICE
 
+ : ## set the TIMEOUT - how many seconds should the power source
+ : ## have been out before issuing safe shutdown.
  : TIMEOUT 5
 
 ** summary
