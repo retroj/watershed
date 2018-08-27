@@ -12,6 +12,19 @@ from Adafruit_GPIO.MCP230xx import MCP23017
 
 tau = asin(1.0) * 4 ## not needed if python >= 3.6
 
+
+def color_darken (color, factor):
+    r, g, b = color
+    return (int(r * factor), int(g * factor), int(b * factor))
+
+def color_blend (color1, color2, factor):
+    r1, g1, b1 = color1
+    r2, g2, b2 = color2
+    r3 = int((r2 - r1) * factor + r1)
+    g3 = int((g2 - g1) * factor + g1)
+    b3 = int((b2 - b1) * factor + b1)
+    return (r3, g3, b3)
+
 class LEDStripSection ():
     offset = 0
     length = 0
@@ -73,6 +86,11 @@ class LEDStrip ():
 
 
 class AssetManager ():
+    """
+    AssetManager manages a table of images for the sprites. They are
+    generated on demand by the first call to the 'get' method. They can be
+    files on disk or a 'generate' procedure that creates the Image.
+    """
     assets = {}
 
     @staticmethod
@@ -92,6 +110,9 @@ class AssetManager ():
 
 
 class Mob ():
+    """
+    Base class for sprites.
+    """
     spawn_time = None
     sprite = None
     mask = None
@@ -120,38 +141,90 @@ class Mob ():
 
 
 class LEDStripMob (Mob):
+    """
+    A Mob that exclusively, or also, appears on a LED strip.
+    """
+    name = "unknown LEDStripMob"
     stripsection = None
     color = (0, 0, 0)
     length = 7 ## length of pollution on strip
-    start_position = (0, 0)
-    speed = (0, 5)
+    start_x = 32
+    airspeed = (0, 8)
+    waterspeed = (0, 5)
+    matrix_trail = None
 
     def __init__ (self, pond, t):
         super(LEDStripMob, self).__init__(pond, t)
-
-    def dim_color (self, color, dim):
-        (r, g, b) = color
-        return (int(r * dim), int(g * dim), int(b * dim))
+        self.speed = self.airspeed
+        self.matrix_trail = []
+        print("spawning "+self.name+" "+str(int(t)))
+        self.stripsection = pond.ledstrip.sections[self.name]
+        self.start_position = (self.start_x, -(self.stripsection.length))
 
     def draw_on_strip (self):
         s = self.stripsection
         x, y = self.position
         for i in range(0, self.length):
             dim = (self.length - i) / self.length
-            c = self.dim_color(self.color, dim)
+            c = color_darken(self.color, dim)
             s.set_pixel(y - i, c)
         s.set_pixel(y - self.length, (0, 0, 0))
 
 
-class Rain (LEDStripMob):
+class WaterMob (LEDStripMob):
+    """
+    Parent class for the Rain and Mana LEDStripMobs, which behave
+    similarly.
+    """
+    fadetime = 3
+    time_entered_water = None
+
+    def draw_on_matrix (self, pond, t):
+        trail_length = len(self.matrix_trail)
+        for i,((tx,ty),tt) in enumerate(self.matrix_trail):
+            if ty < pond.level_px:
+                blue = int(i / trail_length * 200 - (t - tt) * 150)
+                if blue > 0:
+                    pond.canvas.putpixel((tx, ty), (0, 0, blue))
+        if self.time_entered_water is None:
+            color = self.color
+        else:
+            factor = (t - self.time_entered_water) / self.fadetime
+            color = color_blend(self.color, pond.watercolor, factor)
+            if factor >= 1.0:
+                return False
+        pond.canvas.putpixel(self.position, color)
+        x, y = self.position
+        if y < pond.level_px:
+            self.matrix_trail.append((self.position, t))
+        return True
+
+
+    ## Public Interface
+    ##
+    def update (self, pond, t):
+        alive = True
+        (x1, y1) = self.position
+        (x2, y2) = self.update_position(t)
+        if x2 != x1 or y2 != y1: # ledstrip only needs update on change
+            if y2 < self.length: # at least part of tail is on strip
+                self.draw_on_strip()
+        if y2 >= 0 and y2 < pond.height: # matrix
+            self.time_entered_water = self.time_entered_water or t
+            alive = self.draw_on_matrix(pond, t)
+        if alive is False or y2 >= pond.height:
+            print("despawning "+self.name)
+            return False
+        return True
+
+
+class Rain (WaterMob):
+    name = "rain"
     last_spawn = time()
     color = (0, 0, 0xff)
-
-    def __init__ (self, pond, t):
-        super(Rain, self).__init__(pond, t)
-        print("spawning rain "+str(int(t)))
-        self.stripsection = pond.ledstrip.sections["rain"]
-        self.start_position = (20, -(self.stripsection.length))
+    start_x = 20
+    airspeed = (1.5, 8)
+    waterspeed = (1.5, 8)
 
     ## Public Interface
     ##
@@ -161,27 +234,14 @@ class Rain (LEDStripMob):
             Rain.last_spawn = t
             return Rain(pond, t)
 
-    def update (self, pond, t):
-        (x1, y1) = self.position
-        (x2, y2) = self.update_position(t)
-        if x2 != x1 or y2 != y1:
-            if y2 < self.length: # at least part of tail is on strip
-                self.draw_on_strip()
-        if y2 >= self.length:
-            print("despawning rain")
-            return False
-        return True
 
-
-class Mana (LEDStripMob):
+class Mana (WaterMob):
+    name = "mana"
     last_spawn = time()
     color = (0, 0, 0xff)
-
-    def __init__ (self, pond, t):
-        super(Mana, self).__init__(pond, t)
-        print("spawning mana "+str(int(t)))
-        self.stripsection = pond.ledstrip.sections["mana"]
-        self.start_position = (30, -(self.stripsection.length))
+    start_x = 30
+    airspeed = (1.5, 8)
+    waterspeed = (1.5, 8)
 
     ## Public Interface
     ##
@@ -189,37 +249,20 @@ class Mana (LEDStripMob):
     def definitely_spawn (pond, t):
         pond.mobs.append(Mana(pond, t))
 
-    def update (self, pond, t):
-        (x1, y1) = self.position
-        (x2, y2) = self.update_position(t)
-        if x2 != x1 or y2 != y1:
-            if y2 < self.length: # at least part of tail is on strip
-                self.draw_on_strip()
-        if y2 >= self.length:
-            print("despawning mana")
-            return False
-        return True
-
 
 class Pollution (LEDStripMob):
+    name = "pollution"
     last_spawn = time()
     color = (0xaa, 0, 0)
+    start_x = 40
     airspeed = (-1.5, 8)
     waterspeed = (0, 5)
-    matrix_trail = None
-
-    def __init__ (self, pond, t):
-        super(Pollution, self).__init__(pond, t)
-        print("spawning pollution "+str(int(t)))
-        self.stripsection = pond.ledstrip.sections["pollution"]
-        self.start_position = (40, -(self.stripsection.length))
-        self.speed = self.airspeed
-        self.matrix_trail = []
 
     def draw_on_matrix (self, pond, t):
         trail_length = len(self.matrix_trail)
         for i,((tx,ty),tt) in enumerate(self.matrix_trail):
             if ty < pond.level_px:
+                ##XXX: need to have a matrixcolor property
                 red = int(i / trail_length * 200 - (t - tt) * 150)
                 if red > 0:
                     pond.canvas.putpixel((tx, ty), (red, 0, 0))
@@ -227,7 +270,6 @@ class Pollution (LEDStripMob):
         x, y = self.position
         if y < pond.level_px:
             self.matrix_trail.append((self.position, t))
-
 
     ## Public Interface
     ##
@@ -240,7 +282,7 @@ class Pollution (LEDStripMob):
         (x2, y2) = self.update_position(t)
         # if y2 >= pond.level_px:
         #     self.speed = self.waterspeed
-        if x2 != x1 or y2 != y1:
+        if x2 != x1 or y2 != y1: # ledstrip only needs update on change
             if y2 < self.length: # at least part of tail is on strip
                 self.draw_on_strip()
         if y2 >= 0 and y2 < pond.height: # matrix
@@ -285,7 +327,7 @@ class Fish (Mob):
     def maybe_spawn (pond, t):
         ymin = pond.level_px + Fish.height * 0.5
         ymax = pond.height - Fish.height * 1.5
-        if random() * pond.health < 0.001 and pond.health > 0.3 and ymin < ymax:
+        if random() * pond.health < 0.0001 and pond.health > 0.3 and ymin < ymax:
             print("spawning fish")
             return Fish(pond, t, randint(ymin, ymax))
 
@@ -371,6 +413,7 @@ class Pond (SampleBase):
     canvas = None
     pollution = 0
     health = 1.0
+    watercolor = None
     level = 0.7
     level_px = 0
     mobs = None
@@ -406,7 +449,7 @@ class Pond (SampleBase):
     def adjust_level (self):
         l = self.level
         rand = random()
-        threshold = 0.001
+        threshold = 0.0001
         if rand < threshold:
             sign = 1 if rand >= threshold * 0.5 else -1
             l = l + 1/32.0 * sign
@@ -422,11 +465,11 @@ class Pond (SampleBase):
     def draw_bg (self):
         """draw the pond onto self.canvas up to the level represented by self.level"""
         self.health = max(0.0, min(1.0, 1.0 - self.pollution / 100))
-        healthycolor = (0, 0, 0x88)
+        healthycolor = (0x11, 0x22, 0x44)
         pollutedcolor = (0x66, 0x66, 0)
-        color = [int((a - b) * self.health + b)
-                 for a,b in zip(healthycolor, pollutedcolor)]
-        colorname = "rgb({},{},{})".format(*color)
+        self.watercolor = [int((a - b) * self.health + b)
+                           for a,b in zip(healthycolor, pollutedcolor)]
+        colorname = "rgb({},{},{})".format(*self.watercolor)
         w, h = self.width, self.height
         level_px = int(self.level * -32 + 32)
         self.draw.rectangle((0,0,w-1,level_px-1), "#000000")
