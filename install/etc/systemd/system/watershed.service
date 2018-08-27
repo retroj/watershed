@@ -1,0 +1,10 @@
+[Unit]
+Description=Watershed exhibit
+
+[Service]
+ExecStart=/home/pi/watershed/watershed.py
+WorkingDirectory=/home/pi/watershed
+KillSignal=SIGINT
+
+[Install]
+WantedBy=default.target
