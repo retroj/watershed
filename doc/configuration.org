@@ -1,0 +1,89 @@
+
+This document covers the configuration of the Watershedpi computer.  Some of the information here will be redundant of development.org, but that document is more wide-ranging in scope, covering many things that were not actually used in the project, while this document is limited to the actual final setup.  If things change in the future, please keep this document current with changes so that it can be referred to if the setup needs to be recreated.
+
+* Power
+** power off
+
+Cut power to the APC and the Pi will shut down safely within 30 to 90 seconds.
+
+** power on
+
+Restore power to the APC and the Pi will boot automatically.
+
+** power off when you want to keep the APC on (for development, etc)
+
+Log in to the Pi and issue the shutdown command:
+
+ : shutdown now
+
+When shutdown has completed, you can turn off the APC if desired by
+long-pressing its power button.
+
+** power on when the APC is already on (for development, etc)
+
+Simplest: turn off the APC by long-pressing its power button, then turn it back on.
+
+Other method: unplug the power cables to both the Pi and the Matrix HAT,
+then plug them back in.
+
+** references
+
+https://rmoff.net/2016/07/18/configuring-ups-apcupsd/
+
+** summary
+
+We power the project with an APC UPS that includes a USB data port.  The USB data port is connected to the Pi, and apcupsd is configured to perform a safe shutdown when it is detected that the power source has been offline for more than 30 seconds.  The daemon polls the APC every minute so the maximum time to shutdown would be 90 seconds.
+
+* Log in
+** with monitor and keyboard
+
+ - username :: pi
+ - password :: watershed
+
+** over network
+
+Pi's network information:
+
+ - IP :: 192.168.0.10
+ - Netmask :: 255.255.255.0
+
+With another computer on the 192.168.0.x/24 network, ssh to 192.168.0.10
+and log in:
+
+ - username :: pi
+ - password :: watershed
+
+* Start and Stop the Exhibit
+
+Watershed runs automatically at startup as a system service.  Its service file is:
+
+ : /etc/systemd/system/watershed.service
+
+If you need to start and stop this manually, the usual systemd commands will do:
+
+ : $ sudo systemctl stop watershed
+ : $ sudo systemctl start watershed
+
+The program itself lives in:
+
+ : /home/pi/watershed
+
+You can enter this directory and run it without going through systemd as well:
+
+ : $ cd ~/watershed
+ : $ sudo ./watershed.py
+
+* Troubleshooting
+** Pi is working but watershed program didn't start
+
+Log in, check out the load status of watershed.service:
+
+ : $ systemctl list-units
+
+Try stopping and starting the service.  Look in the journal to see if any
+errors were logged:
+
+ : $ sudo journalctl -u watershed
+
+Try running the watershed program from the command line, not as a system
+service.
