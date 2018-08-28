@@ -121,6 +121,7 @@ class Mob ():
     position = (0, 0)
     start_position = (0, 0)
     speed = (0, 5)
+    z = 0
 
     def __init__ (self, pond, t):
         self.spawn_time = t
@@ -147,7 +148,7 @@ class LEDStripMob (Mob):
     name = "unknown LEDStripMob"
     stripsection = None
     color = (0, 0, 0)
-    length = 7 ## length of pollution on strip
+    length = 7 ## length of baddroplet on strip
     start_x = 32
     airspeed = (0, 8)
     waterspeed = (0, 5)
@@ -173,10 +174,10 @@ class LEDStripMob (Mob):
 
 class WaterMob (LEDStripMob):
     """
-    Parent class for the Rain and Mana LEDStripMobs, which behave
+    Parent class for the Rain and GoodDroplet LEDStripMobs, which behave
     similarly.
     """
-    fadetime = 3
+    fadetime = 3.5
     time_entered_water = None
 
     def draw_on_matrix (self, pond, t):
@@ -225,6 +226,7 @@ class Rain (WaterMob):
     start_x = 20
     airspeed = (1.5, 8)
     waterspeed = (1.5, 8)
+    z = -1
 
     ## Public Interface
     ##
@@ -235,8 +237,8 @@ class Rain (WaterMob):
             return Rain(pond, t)
 
 
-class Mana (WaterMob):
-    name = "mana"
+class GoodDroplet (WaterMob):
+    name = "gooddroplet"
     last_spawn = time()
     color = (0, 0, 0xff)
     start_x = 30
@@ -247,11 +249,11 @@ class Mana (WaterMob):
     ##
     @staticmethod
     def definitely_spawn (pond, t):
-        pond.mobs.append(Mana(pond, t))
+        pond.add_mob(GoodDroplet(pond, t))
 
 
-class Pollution (LEDStripMob):
-    name = "pollution"
+class BadDroplet (LEDStripMob):
+    name = "baddroplet"
     last_spawn = time()
     color = (0xaa, 0, 0)
     start_x = 40
@@ -275,7 +277,7 @@ class Pollution (LEDStripMob):
     ##
     @staticmethod
     def definitely_spawn (pond, t):
-        pond.mobs.append(Pollution(pond, t))
+        pond.add_mob(BadDroplet(pond, t))
 
     def update (self, pond, t):
         (x1, y1) = self.position
@@ -288,8 +290,8 @@ class Pollution (LEDStripMob):
         if y2 >= 0 and y2 < pond.height: # matrix
             self.draw_on_matrix(pond, t)
         if y2 >= pond.height:
-            print("despawning pollution")
-            pond.pollution += 1
+            print("despawning baddroplet")
+            pond.baddroplet += 1
             return False
         return True
 
@@ -411,7 +413,7 @@ class Pond (SampleBase):
     width = 0
     height = 0
     canvas = None
-    pollution = 0
+    baddroplet = 0
     health = 1.0
     watercolor = None
     level = 0.7
@@ -424,27 +426,33 @@ class Pond (SampleBase):
             spawner.init_static()
         self.mobs = []
         self.switches = Switches(address = 0x20)
-        self.switches.bind(6, lambda: Mana.definitely_spawn(self, time()))
-        self.switches.bind(7, lambda: Pollution.definitely_spawn(self, time()))
+        self.switches.bind(6, lambda: GoodDroplet.definitely_spawn(self, time()))
+        self.switches.bind(7, lambda: BadDroplet.definitely_spawn(self, time()))
         self.ledstrip = LEDStrip(
             datapin=24, clockpin=25,
             ## single strip
             sections=[{ "name": "wave", "length": 37, "direction": -1 },
                       { "name": "rain", "length": 37, "direction": -1,
                         "voffset": -1, "vmul": -1 },
-                      { "name": "mana", "length": 37, "direction": 1,
+                      { "name": "gooddroplet", "length": 37, "direction": 1,
                         "voffset": -1, "vmul": -1 },
-                      { "name": "pollution", "length": 37, "direction": -1,
+                      { "name": "baddroplet", "length": 37, "direction": -1,
                         "voffset": -1, "vmul": -1 }])
             ## full
             # sections=[{ "name": "wave", "length": 37, "direction": -1 },
             #           { "name": "rain", "length": 37, "direction": -1,
             #             "voffset": -1, "vmul": -1 },
-            #           { "name": "mana", "offset": 150, "length": 65, "direction": 1,
+            #           { "name": "gooddroplet", "offset": 150, "length": 65, "direction": 1,
             #             "voffset": -1, "vmul": -1 },
-            #           { "name": "pollution", "offset": 215, "length": 66, "direction": -1,
+            #           { "name": "baddroplet", "offset": 215, "length": 66, "direction": -1,
             #             "voffset": -1, "vmul": -1 }])
         self.wave = Wave(self.ledstrip.sections["wave"])
+
+    def add_mob (self, m):
+        z = m.z
+        i = next((i for i,x in enumerate(self.mobs) if x.z > z), len(self.mobs))
+        self.mobs.insert(i, m)
+
 
     def adjust_level (self):
         l = self.level
@@ -460,11 +468,11 @@ class Pond (SampleBase):
         for x in self.active_spawners:
             f = x.maybe_spawn(self, t)
             if f:
-                self.mobs.append(f)
+                self.add_mob(f)
 
     def draw_bg (self):
         """draw the pond onto self.canvas up to the level represented by self.level"""
-        self.health = max(0.0, min(1.0, 1.0 - self.pollution / 100))
+        self.health = max(0.0, min(1.0, 1.0 - self.baddroplet / 100))
         healthycolor = (0x11, 0x22, 0x44)
         pollutedcolor = (0x66, 0x66, 0)
         self.watercolor = [int((a - b) * self.health + b)
@@ -475,11 +483,11 @@ class Pond (SampleBase):
         self.draw.rectangle((0,0,w-1,level_px-1), "#000000")
         self.draw.rectangle((0,level_px,w-1,h-1), colorname)
 
-        if self.pollution > 0:
-            pollutioncenter = 28
-            pollutionleft = int(pollutioncenter - self.pollution / 2)
-            self.draw.line((pollutionleft, h-1,
-                            pollutionleft + self.pollution - 1, h-1), "#aa0000")
+        if self.baddroplet > 0:
+            baddropletcenter = 28
+            baddropletleft = int(baddropletcenter - self.baddroplet / 2)
+            self.draw.line((baddropletleft, h-1,
+                            baddropletleft + self.baddroplet - 1, h-1), "#aa0000")
 
     def draw_mobs (self, t):
         self.mobs = [mob for mob in self.mobs if mob.update(self, t)]
