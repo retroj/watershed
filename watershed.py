@@ -104,7 +104,7 @@ class AssetManager ():
             sprite = Image.merge("RGB", (r, g, b))
             mask = Image.merge("L", (a,))
             width, height = img.width, img.height
-            AssetManager.assets[name] = (sprite, mask, width, height)
+            AssetManager.assets[name] = (name, sprite, mask, width, height)
         return AssetManager.assets[name]
 
 
@@ -389,7 +389,8 @@ class BadDroplet (LEDStripMob):
 
 
 class Fish (Mob):
-    name = "unknown fish"
+    name = "fish"
+    sprites = None
     width = 0
     height = 0
     start_position = (0, 0)
@@ -399,12 +400,12 @@ class Fish (Mob):
         super(Fish, self).__init__(pond, t)
         direction = bool(getrandbits(1))
         if direction:
-            self.sprite, self.mask, self.width, self.height = \
+            _, self.sprite, self.mask, self.width, self.height = \
                 AssetManager.get(spriteright)
             start_x = -self.width
             self.speed = (random() * 6 + 2, 0)
         else:
-            self.sprite, self.mask, self.width, self.height = \
+            _, self.sprite, self.mask, self.width, self.height = \
                 AssetManager.get(spriteleft)
             start_x = pond.width
             self.speed = (-(random() * 6 + 2), 0)
@@ -425,47 +426,24 @@ class Fish (Mob):
         pond.canvas.paste(self.sprite, self.position, self.mask)
         return True
 
-
-class Fish1 (Fish):
-    name = "fish1"
-
-    ## Public Interface
-    ##
     @staticmethod
     def init_static ():
-        _, _, Fish1.width, Fish1.height = \
-            AssetManager.get("assets/sprites/Fish1/Fish1-right.png")
+        Fish.sprites = []
+        Fish.sprites.append(("fish1", AssetManager.get("assets/sprites/Fish1/Fish1-left.png"),
+                             AssetManager.get("assets/sprites/Fish1/Fish1-right.png")))
+        Fish.sprites.append(("fish2", AssetManager.get("assets/sprites/Fish2/Fish2-left.png"),
+                             AssetManager.get("assets/sprites/Fish2/Fish2-right.png")))
 
     @staticmethod
     def maybe_spawn (pond, t):
-        ymin = pond.level_px + Fish1.height * 0.5
-        ymax = pond.height - Fish1.height * 1.5
-        if random() * pond.health < 0.0001 and pond.health > 0.3 and ymin < ymax:
-            print("spawning fish1")
-            return Fish1(pond, t, randint(ymin, ymax),
-                         "assets/sprites/Fish1/Fish1-left.png",
-                         "assets/sprites/Fish1/Fish1-right.png")
-
-
-class Fish2 (Fish):
-    name = "fish2"
-
-    ## Public Interface
-    ##
-    @staticmethod
-    def init_static ():
-        _, _, Fish2.width, Fish2.height = \
-            AssetManager.get("assets/sprites/Fish2/Fish2-right.png")
-
-    @staticmethod
-    def maybe_spawn (pond, t):
-        ymin = int(pond.level_px + Fish2.height * 0.5)
-        ymax = int(pond.height - Fish2.height * 1.5)
+        shortname, left, right  = Fish.sprites[randint(0, len(Fish.sprites)-1)]
+        leftname,_,_,_,height = left
+        rightname,_,_,_,_ = right
+        ymin = pond.level_px + int(height * 0.5)
+        ymax = pond.height - int(height * 1.5)
         if random() * pond.health < 0.001 and pond.health > 0.3 and ymin < ymax:
-            print("spawning fish2")
-            return Fish2(pond, t, randint(ymin, ymax),
-                         "assets/sprites/Fish2/Fish2-left.png",
-                         "assets/sprites/Fish2/Fish2-right.png")
+            print("spawning "+shortname)
+            return Fish(pond, t, randint(ymin, ymax), leftname, rightname)
 
 
 class Wave ():
@@ -529,7 +507,7 @@ class Switches (MCP23017):
 
 
 class Pond (SampleBase):
-    active_spawners = [Fish1, Fish2, Rain]
+    active_spawners = [Fish, Rain]
     ledstrip = None
     switches = None
     width = 0
