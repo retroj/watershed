@@ -389,22 +389,23 @@ class BadDroplet (LEDStripMob):
 
 
 class Fish (Mob):
+    name = "unknown fish"
     width = 0
     height = 0
     start_position = (0, 0)
     speed = (0, 5)
 
-    def __init__ (self, pond, t, y):
+    def __init__ (self, pond, t, y, spriteleft, spriteright):
         super(Fish, self).__init__(pond, t)
         direction = bool(getrandbits(1))
         if direction:
             self.sprite, self.mask, self.width, self.height = \
-                AssetManager.get("assets/sprites/Fish1/Fish1-right.png")
+                AssetManager.get(spriteright)
             start_x = -self.width
             self.speed = (random() * 6 + 2, 0)
         else:
             self.sprite, self.mask, self.width, self.height = \
-                AssetManager.get("assets/sprites/Fish1/Fish1-left.png")
+                AssetManager.get(spriteleft)
             start_x = pond.width
             self.speed = (-(random() * 6 + 2), 0)
         self.start_position = (start_x, y)
@@ -412,30 +413,59 @@ class Fish (Mob):
 
     ## Public Interface
     ##
-    @staticmethod
-    def init_static ():
-        _, _, Fish.width, Fish.height = \
-            AssetManager.get("assets/sprites/Fish1/Fish1-right.png")
-
-    @staticmethod
-    def maybe_spawn (pond, t):
-        ymin = pond.level_px + Fish.height * 0.5
-        ymax = pond.height - Fish.height * 1.5
-        if random() * pond.health < 0.0001 and pond.health > 0.3 and ymin < ymax:
-            print("spawning fish")
-            return Fish(pond, t, randint(ymin, ymax))
-
     def update (self, pond, t):
         (x, y) = self.update_position(t)
         (sx, sy) = self.speed
         if sx > 0 and x >= pond.width:
-            print("despawning fish")
+            print("despawning "+self.name)
             return False
         elif sx < 0 and x < -self.width:
-            print("despawning fish")
+            print("despawning "+self.name)
             return False
         pond.canvas.paste(self.sprite, self.position, self.mask)
         return True
+
+
+class Fish1 (Fish):
+    name = "fish1"
+
+    ## Public Interface
+    ##
+    @staticmethod
+    def init_static ():
+        _, _, Fish1.width, Fish1.height = \
+            AssetManager.get("assets/sprites/Fish1/Fish1-right.png")
+
+    @staticmethod
+    def maybe_spawn (pond, t):
+        ymin = pond.level_px + Fish1.height * 0.5
+        ymax = pond.height - Fish1.height * 1.5
+        if random() * pond.health < 0.0001 and pond.health > 0.3 and ymin < ymax:
+            print("spawning fish1")
+            return Fish1(pond, t, randint(ymin, ymax),
+                         "assets/sprites/Fish1/Fish1-left.png",
+                         "assets/sprites/Fish1/Fish1-right.png")
+
+
+class Fish2 (Fish):
+    name = "fish2"
+
+    ## Public Interface
+    ##
+    @staticmethod
+    def init_static ():
+        _, _, Fish2.width, Fish2.height = \
+            AssetManager.get("assets/sprites/Fish2/Fish2-right.png")
+
+    @staticmethod
+    def maybe_spawn (pond, t):
+        ymin = int(pond.level_px + Fish2.height * 0.5)
+        ymax = int(pond.height - Fish2.height * 1.5)
+        if random() * pond.health < 0.001 and pond.health > 0.3 and ymin < ymax:
+            print("spawning fish2")
+            return Fish2(pond, t, randint(ymin, ymax),
+                         "assets/sprites/Fish2/Fish2-left.png",
+                         "assets/sprites/Fish2/Fish2-right.png")
 
 
 class Wave ():
@@ -499,7 +529,7 @@ class Switches (MCP23017):
 
 
 class Pond (SampleBase):
-    active_spawners = [Fish, Rain]
+    active_spawners = [Fish1, Fish2, Rain]
     ledstrip = None
     switches = None
     width = 0
