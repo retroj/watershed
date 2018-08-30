@@ -299,27 +299,53 @@ class Rain2 (LEDStripMob):
 
 
 
-class GoodDroplet (LEDStripMob):
-    name = "gooddroplet"
-    last_spawn = time()
-    color = (0, 0, 0xff)
+class Droplet (LEDStripMob):
+    name = "unknown droplet"
     start_x = 30
     airspeed = (1.5, 8)
     waterspeed = (1.5, 8)
+    value = 0
 
     def draw_on_matrix (self, pond, t):
         trail_length = len(self.matrix_trail)
+        r,g,b = [x / 255.0 for x in self.color]
         for i,((tx,ty),tt) in enumerate(self.matrix_trail):
             if ty < pond.level_px:
-                ##XXX: need to have a matrixcolor property
-                blue = int(i / trail_length * 200 - (t - tt) * 150)
-                if blue > 0:
-                    pond.canvas.putpixel((tx, ty), (0, 0, blue))
+                f = i / trail_length * 200 - (t - tt) * 150
+                r2, g2, b2 = int(f * r), int(f * g), int(f * b)
+                if r2 or g2 or b2:
+                    pond.canvas.putpixel((tx, ty), (r2, g2, b2))
         pond.canvas.putpixel(self.position, self.color)
         x, y = self.position
         if y < pond.level_px:
             self.matrix_trail.append((self.position, t))
 
+    ## Public Interface
+    ##
+    def update (self, pond, t):
+        (x1, y1) = self.position
+        (x2, y2) = self.update_position(t)
+        # if y2 >= pond.level_px:
+        #     self.speed = self.waterspeed
+        if x2 != x1 or y2 != y1: # ledstrip only needs update on change
+            if y2 < self.length: # at least part of tail is on strip
+                self.draw_on_strip()
+        if y2 >= 0 and y2 < pond.height: # matrix
+            self.draw_on_matrix(pond, t)
+        if y2 >= pond.height:
+            print("despawning "+self.name)
+            pond.baddroplet += self.value
+            return False
+        return True
+
+
+class GoodDroplet (Droplet):
+    name = "gooddroplet"
+    color = (0, 0, 0xff)
+    start_x = 30
+    airspeed = (1.5, 8)
+    waterspeed = (1.5, 8)
+    value = 1
 
     ## Public Interface
     ##
@@ -327,65 +353,20 @@ class GoodDroplet (LEDStripMob):
     def definitely_spawn (pond, t):
         pond.add_mob(GoodDroplet(pond, t))
 
-    def update (self, pond, t):
-        (x1, y1) = self.position
-        (x2, y2) = self.update_position(t)
-        # if y2 >= pond.level_px:
-        #     self.speed = self.waterspeed
-        if x2 != x1 or y2 != y1: # ledstrip only needs update on change
-            if y2 < self.length: # at least part of tail is on strip
-                self.draw_on_strip()
-        if y2 >= 0 and y2 < pond.height: # matrix
-            self.draw_on_matrix(pond, t)
-        if y2 >= pond.height:
-            print("despawning baddroplet")
-            pond.baddroplet += 1
-            return False
-        return True
 
-
-class BadDroplet (LEDStripMob):
+class BadDroplet (Droplet):
     name = "baddroplet"
-    last_spawn = time()
     color = (0xaa, 0, 0)
     start_x = 40
     airspeed = (-1.5, 8)
     waterspeed = (0, 5)
-
-    def draw_on_matrix (self, pond, t):
-        trail_length = len(self.matrix_trail)
-        for i,((tx,ty),tt) in enumerate(self.matrix_trail):
-            if ty < pond.level_px:
-                ##XXX: need to have a matrixcolor property
-                red = int(i / trail_length * 200 - (t - tt) * 150)
-                if red > 0:
-                    pond.canvas.putpixel((tx, ty), (red, 0, 0))
-        pond.canvas.putpixel(self.position, self.color)
-        x, y = self.position
-        if y < pond.level_px:
-            self.matrix_trail.append((self.position, t))
+    value = -1
 
     ## Public Interface
     ##
     @staticmethod
     def definitely_spawn (pond, t):
         pond.add_mob(BadDroplet(pond, t))
-
-    def update (self, pond, t):
-        (x1, y1) = self.position
-        (x2, y2) = self.update_position(t)
-        # if y2 >= pond.level_px:
-        #     self.speed = self.waterspeed
-        if x2 != x1 or y2 != y1: # ledstrip only needs update on change
-            if y2 < self.length: # at least part of tail is on strip
-                self.draw_on_strip()
-        if y2 >= 0 and y2 < pond.height: # matrix
-            self.draw_on_matrix(pond, t)
-        if y2 >= pond.height:
-            print("despawning baddroplet")
-            pond.baddroplet += 1
-            return False
-        return True
 
 
 class Fish (Mob):
