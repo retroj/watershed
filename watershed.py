@@ -332,9 +332,10 @@ class Droplet (LEDStripMob):
                 self.draw_on_strip()
         if y2 >= 0 and y2 < pond.height: # matrix
             self.draw_on_matrix(pond, t)
-        if y2 >= pond.height:
+        if y2 + 1 >= pond.mud.levels[x2] or y2 + 1 >= pond.height:
+            ## turn this over to the mud
             print("despawning "+self.name)
-            pond.baddroplet += self.value
+            pond.mud.add(self)
             return False
         return True
 
@@ -487,14 +488,88 @@ class Switches (MCP23017):
         self.bindings[i] = thunk
 
 
+class Mud ():
+    lastupdate = time()
+    updaterate = 0.75
+    value = 0
+    levels = None
+    canvas = None
+    mask = None
+
+    def __init__ (self):
+        self.levels = [32] * 64
+        self.canvas = Image.new("RGB", (64, 32))
+        self.mask = Image.new("1", (64, 32))
+
+    def add (self, droplet):
+        self.value += droplet.value
+        x, y = droplet.position
+        self.levels[x] = y
+        self.canvas.putpixel((x, y), droplet.color)
+        self.mask.putpixel((x, y), 255)
+
+    def runphysics (self, pond, t):
+        cols = sorted(enumerate(self.levels), key=lambda x: x[1], reverse=True)
+        for x,level in cols:
+            sp = None
+            newlevel = level
+            for y in range(31, level - 1, -1):
+                c = self.canvas.getpixel((x, y))
+                if c != (0,0,0):  ## droplet
+                    if sp is not None:
+                        self.canvas.putpixel((x, y), (0, 0, 0))
+                        self.mask.putpixel((x, y), 0)
+                        self.canvas.putpixel((x, y + 1), c)
+                        self.mask.putpixel((x, y + 1), 255)
+                        sp = y
+                        newlevel = y + 1
+                    else:
+                        ## is there an adjacent stack that is shorter by at least 2?
+                        left = x > 0 and self.levels[x - 1] > y + 1
+                        right = x < 63 and self.levels[x + 1] > y + 1
+                        if left and right:
+                            left = left and bool(getrandbits(1))
+                        y2 = y + 1
+                        if left:
+                            x2 = x - 1
+                        elif right:
+                            x2 = x + 1
+                        else:
+                            newlevel = y
+                            continue
+                        self.canvas.putpixel((x, y), (0, 0, 0))
+                        self.mask.putpixel((x, y), 0)
+                        self.canvas.putpixel((x2, y2), c)
+                        self.mask.putpixel((x2, y2), 255)
+                        self.levels[x2] = y2
+                        sp = y
+                        newlevel = y + 1
+                else:                           ## space
+                    sp = y ## if multiple spaces, this will be the top one
+            self.levels[x] = newlevel
+
+    def draw (self, pond, t):
+        if t >= self.lastupdate + self.updaterate:
+            self.runphysics(pond, t)
+            self.lastupdate = t
+
+        ## loop over levels, say we have:
+        ##   y1 = levels[x - 1]
+        ##   y2 = levels[x]
+        ##   y3 = levels[x + 1]
+        #y1,y2,y3 = self.levels[x - 1 : x + 2]
+
+        pond.canvas.paste(self.canvas, (0, 0), self.mask)
+
+
 class Pond (SampleBase):
+    mud = None
     active_spawners = [Fish, Rain]
     ledstrip = None
     switches = None
     width = 0
     height = 0
     canvas = None
-    baddroplet = 0
     health = 1.0
     watercolor = None
     level = 0.7
@@ -503,6 +578,7 @@ class Pond (SampleBase):
 
     def __init__ (self, *args, **kwargs):
         super(Pond, self).__init__(*args, **kwargs)
+        self.mud = Mud()
         for spawner in self.active_spawners:
             spawner.init_static()
         self.mobs = []
@@ -553,7 +629,7 @@ class Pond (SampleBase):
 
     def draw_bg (self):
         """draw the pond onto self.canvas up to the level represented by self.level"""
-        self.health = max(0.0, min(1.0, 1.0 - self.baddroplet / 100))
+        self.health = max(0.0, min(1.0, 1.0 - self.mud.value / 30))
         healthycolor = (0x11, 0x22, 0x44)
         pollutedcolor = (0x66, 0x66, 0)
         self.watercolor = [int((a - b) * self.health + b)
@@ -563,12 +639,6 @@ class Pond (SampleBase):
         level_px = int(self.level * -32 + 32)
         self.draw.rectangle((0,0,w-1,level_px-1), "#000000")
         self.draw.rectangle((0,level_px,w-1,h-1), colorname)
-
-        if self.baddroplet > 0:
-            baddropletcenter = 28
-            baddropletleft = int(baddropletcenter - self.baddroplet / 2)
-            self.draw.line((baddropletleft, h-1,
-                            baddropletleft + self.baddroplet - 1, h-1), "#aa0000")
 
     def draw_mobs (self, t):
         self.mobs = [mob for mob in self.mobs if mob.update(self, t)]
@@ -594,6 +664,7 @@ class Pond (SampleBase):
             ## draw internal canvas
             ##
             self.draw_bg()
+            self.mud.draw(self, t)
             self.draw_mobs(t)
 
             ## write canvas to matrix

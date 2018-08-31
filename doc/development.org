@@ -29,6 +29,36 @@ streams: 7.5, 7.5 (maybe +1 foot)
 :LOGBOOK:
 - State -> "TODO"  [2018-07-29 Sun]
 :END:
+
+*** mud physics option 1
+
+ : for each row from bottom to top
+ :   for each pixel in row
+ :     is there something here?
+ :       hmm
+
+*** mud physics option 2
+
+ : for each column (self.levels)
+ :   for y = 31 to top
+ :     look for empty spaces into which things above can drop
+ :     keep note of spaces for diagonal falls from the next column
+
+The problem with this one is that it favors left diagonal drops over right
+diagonal drops.
+
+*** mud physics option 3
+
+ : for each column (self.levels) sorted by height, lowest first
+ :   for y = 31 to top
+ :     look for empty spaces into which things above can drop
+ :     keep note of spaces for diagonal falls from taller columns
+
+I think I like this one.
+
+If this runs too slowly, which is very well may, we can stagger the
+columns across time rather than doing them all in one frame.
+
 ** TODO pollution different speed when it hits water
 :LOGBOOK:
 - State -> "TODO"  [2018-07-29 Sun]
