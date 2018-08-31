@@ -610,7 +610,6 @@ class Pond (SampleBase):
         i = next((i for i,x in enumerate(self.mobs) if x.z > z), len(self.mobs))
         self.mobs.insert(i, m)
 
-
     def adjust_level (self):
         l = self.level
         rand = random()
