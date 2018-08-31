@@ -628,7 +628,7 @@ class Pond (SampleBase):
 
     def draw_bg (self):
         """draw the pond onto self.canvas up to the level represented by self.level"""
-        self.health = max(0.0, min(1.0, 1.0 - self.mud.value / 30))
+        self.health = max(0.0, min(1.0, (10 + self.mud.value) / 10.0))
         healthycolor = (0x11, 0x22, 0x44)
         pollutedcolor = (0x66, 0x66, 0)
         self.watercolor = [int((a - b) * self.health + b)
