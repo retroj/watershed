@@ -563,6 +563,10 @@ class Mud ():
 
 
 class Pond (SampleBase):
+    ## config
+    healthsteps = 10
+
+    ## internal
     mud = None
     active_spawners = [Fish, Rain]
     ledstrip = None
@@ -628,7 +632,7 @@ class Pond (SampleBase):
 
     def draw_bg (self):
         """draw the pond onto self.canvas up to the level represented by self.level"""
-        self.health = max(0.0, min(1.0, (10 + self.mud.value) / 10.0))
+        self.health = max(0.0, min(1.0, (self.healthsteps + self.mud.value) / self.healthsteps))
         healthycolor = (0x11, 0x22, 0x44)
         pollutedcolor = (0x66, 0x66, 0)
         self.watercolor = [int((a - b) * self.health + b)
