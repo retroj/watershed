@@ -349,7 +349,7 @@ class GoodDroplet (Droplet):
     ## Public Interface
     ##
     @staticmethod
-    def definitely_spawn (pond, t):
+    def spawn (pond, t):
         pond.add_mob(GoodDroplet(pond, t))
 
 
@@ -363,7 +363,7 @@ class BadDroplet (Droplet):
     ## Public Interface
     ##
     @staticmethod
-    def definitely_spawn (pond, t):
+    def spawn (pond, t):
         pond.add_mob(BadDroplet(pond, t))
 
 
@@ -595,8 +595,8 @@ class Pond (SampleBase):
         self.mobs = []
         self.switches = Switches(address = 0x20)
         self.switches.bind(5, lambda: self.reset())
-        self.switches.bind(6, lambda: GoodDroplet.definitely_spawn(self, time()))
-        self.switches.bind(7, lambda: BadDroplet.definitely_spawn(self, time()))
+        self.switches.bind(6, lambda: GoodDroplet.spawn(self, time()))
+        self.switches.bind(7, lambda: BadDroplet.spawn(self, time()))
         self.ledstrip = LEDStrip(
             datapin=24, clockpin=25,
             ## single strip
