@@ -420,7 +420,7 @@ class Fish (Mob):
         rightname,_,_,_,_ = right
         ymin = pond.level_px + int(height * 0.5)
         ymax = pond.height - int(height * 1.5)
-        if random() * pond.health < 0.001 and pond.health > 0.3 and ymin < ymax:
+        if random() * pond.health**0.125 < 0.0005 and pond.health > 0.3 and ymin < ymax:
             print("spawning "+shortname)
             return Fish(pond, t, randint(ymin, ymax), leftname, rightname)
 
