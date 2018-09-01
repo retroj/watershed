@@ -558,13 +558,6 @@ class Mud ():
         if t >= self.lastupdate + self.updaterate:
             self.runphysics(pond, t)
             self.lastupdate = t
-
-        ## loop over levels, say we have:
-        ##   y1 = levels[x - 1]
-        ##   y2 = levels[x]
-        ##   y3 = levels[x + 1]
-        #y1,y2,y3 = self.levels[x - 1 : x + 2]
-
         pond.canvas.paste(self.canvas, (0, 0), self.mask)
 
 
