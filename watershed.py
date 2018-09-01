@@ -304,7 +304,6 @@ class Droplet (LEDStripMob):
     start_x = 30
     airspeed = (1.5, 8)
     waterspeed = (1.5, 8)
-    value = 0
 
     def draw_on_matrix (self, pond, t):
         trail_length = len(self.matrix_trail)
@@ -346,7 +345,6 @@ class GoodDroplet (Droplet):
     start_x = 30
     airspeed = (1.5, 8)
     waterspeed = (1.5, 8)
-    value = 1
 
     ## Public Interface
     ##
@@ -361,7 +359,6 @@ class BadDroplet (Droplet):
     start_x = 40
     airspeed = (-1.5, 8)
     waterspeed = (0, 5)
-    value = -1
 
     ## Public Interface
     ##
@@ -502,7 +499,6 @@ class Mud ():
         self.mask = Image.new("1", (64, 32))
 
     def add (self, droplet):
-        self.value += droplet.value
         x, y = droplet.position
         self.levels[x] = y
         self.canvas.putpixel((x, y), droplet.color)
@@ -510,21 +506,32 @@ class Mud ():
 
     def runphysics (self, pond, t):
         cols = sorted(enumerate(self.levels), key=lambda x: x[1], reverse=True)
+        ## we compute the value based on the colors that we find in this
+        ## loop. it's not elegant but it's simple and straightforward.
+        value = 0
         for x,level in cols:
             sp = None
             newlevel = level
             for y in range(31, level - 1, -1):
                 c = self.canvas.getpixel((x, y))
-                if c != (0,0,0):  ## droplet
-                    if sp is not None:
+                if c == (0,0,0):                 ## space
+                    sp = y ## if multiple spaces, this will be the top one
+                else:                            ## droplet
+                    if random() < 0.002: ## random decay
+                        ## make a hole but don't fill it in this frame
+                        self.canvas.putpixel((x, y), (0, 0, 0))
+                        self.mask.putpixel((x, y), 0)
+                        newlevel = y + 1
+                    elif sp is not None: ## fall down
+                        value += 1 if c == (0, 0, 0xff) else -1
                         self.canvas.putpixel((x, y), (0, 0, 0))
                         self.mask.putpixel((x, y), 0)
                         self.canvas.putpixel((x, y + 1), c)
                         self.mask.putpixel((x, y + 1), 255)
                         sp = y
                         newlevel = y + 1
-                    else:
-                        ## is there an adjacent stack that is shorter by at least 2?
+                    else: ## fall diagonally
+                        value += 1 if c == GoodDroplet.color else -1
                         left = x > 0 and self.levels[x - 1] > y + 1
                         right = x < 63 and self.levels[x + 1] > y + 1
                         if left and right:
@@ -544,9 +551,8 @@ class Mud ():
                         self.levels[x2] = y2
                         sp = y
                         newlevel = y + 1
-                else:                           ## space
-                    sp = y ## if multiple spaces, this will be the top one
             self.levels[x] = newlevel
+        self.value = value
 
     def draw (self, pond, t):
         if t >= self.lastupdate + self.updaterate:
