@@ -571,10 +571,10 @@ class Mud ():
 class Pond (SampleBase):
     ## config
     healthsteps = 10
+    active_spawners = [Fish, Rain]
 
     ## internal
     mud = None
-    active_spawners = [Fish, Rain]
     ledstrip = None
     switches = None
     width = 0
@@ -585,6 +585,7 @@ class Pond (SampleBase):
     level = 0.7
     level_px = 0
     mobs = None
+    resetstart = None
 
     def __init__ (self, *args, **kwargs):
         super(Pond, self).__init__(*args, **kwargs)
@@ -593,6 +594,7 @@ class Pond (SampleBase):
             spawner.init_static()
         self.mobs = []
         self.switches = Switches(address = 0x20)
+        self.switches.bind(5, lambda: self.reset())
         self.switches.bind(6, lambda: GoodDroplet.definitely_spawn(self, time()))
         self.switches.bind(7, lambda: BadDroplet.definitely_spawn(self, time()))
         self.ledstrip = LEDStrip(
@@ -614,6 +616,10 @@ class Pond (SampleBase):
             #           { "name": "baddroplet", "offset": 215, "length": 66, "direction": -1,
             #             "voffset": -1, "vmul": -1 }])
         self.wave = Wave(self.ledstrip.sections["wave"])
+
+    def reset (self):
+        print("reset requested")
+        self.resetstart = time()
 
     def add_mob (self, m):
         z = m.z
@@ -652,6 +658,21 @@ class Pond (SampleBase):
     def draw_mobs (self, t):
         self.mobs = [mob for mob in self.mobs if mob.update(self, t)]
 
+    def mode_gameplay (self, t):
+        ##XXX: what if another mode wants different bindings?
+        self.switches.poll()
+
+        ## compute state
+        ##
+        self.adjust_level()
+        self.spawn_mobs(t)
+
+        ## draw internal canvas
+        ##
+        self.draw_bg()
+        self.mud.draw(self, t)
+        self.draw_mobs(t)
+
     def run (self):
         double_buffer = self.matrix.CreateFrameCanvas()
         self.width = double_buffer.width
@@ -663,18 +684,9 @@ class Pond (SampleBase):
         while True:
             t = time()
 
-            self.switches.poll()
-
-            ## compute state
-            ##
-            self.adjust_level()
-            self.spawn_mobs(t)
-
-            ## draw internal canvas
-            ##
-            self.draw_bg()
-            self.mud.draw(self, t)
-            self.draw_mobs(t)
+            ##XXX: this will call 'current_mode' in order to support reset
+            ##     and perhaps other modes like startup.
+            self.mode_gameplay(t)
 
             ## write canvas to matrix
             ##
@@ -683,7 +695,7 @@ class Pond (SampleBase):
 
             ## write led strip
             ##
-            self.wave.update(t)
+            self.wave.update(t) ##XXX: maybe also need modes for the led strip
             self.ledstrip.strip.show(self.ledstrip.buffer)
 
             sleep(0.01)
