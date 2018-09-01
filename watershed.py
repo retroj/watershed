@@ -702,6 +702,9 @@ class Pond (SampleBase):
 
 
 if __name__ == "__main__":
+    with open("config.py") as f:
+        code = compile(f.read(), "config.py", 'exec')
+        exec(code)
     pond = Pond()
     try:
         if (not pond.process()):

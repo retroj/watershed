@@ -1,0 +1,2 @@
+
+Pond.healthsteps = 12
