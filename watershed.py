@@ -12,6 +12,13 @@ from Adafruit_GPIO.MCP230xx import MCP23017
 
 tau = asin(1.0) * 4 ## not needed if python >= 3.6
 
+class GameError ():
+    message = None
+    color = None
+
+    def __init__ (self, message, color):
+        self.message = message
+        self.color = color
 
 def color_darken (color, factor):
     r, g, b = color
@@ -653,7 +660,11 @@ class Pond (SampleBase):
 
     def mode_gameplay (self, t):
         ##XXX: what if another mode wants different bindings?
-        self.switches.poll()
+        try:
+            self.switches.poll()
+        except OSError as e:
+            self.error = GameError("switches.poll failed", (0x33, 0x11, 0))
+            print(e)
 
         ## compute state
         ##
@@ -675,11 +686,16 @@ class Pond (SampleBase):
         self.level_px = int(self.level * -32 + 32)
 
         while True:
+            self.error = None
             t = time()
 
             ##XXX: this will call 'current_mode' in order to support reset
             ##     and perhaps other modes like startup.
             self.mode_gameplay(t)
+
+            ## if there was an error, set visual indicator
+            if self.error:
+                self.canvas.putpixel((63, 0), self.error.color)
 
             ## write canvas to matrix
             ##
