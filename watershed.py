@@ -12,7 +12,7 @@ from Adafruit_GPIO.MCP230xx import MCP23017
 
 tau = asin(1.0) * 4 ## not needed if python >= 3.6
 
-class GameError ():
+class GameError (Exception):
     message = None
     color = None
 
@@ -469,19 +469,58 @@ class Wave ():
 
 
 class Switches (MCP23017):
+    args = None
+    kwargs = None
+    last_init_attempt = time()
+    ioexpander_initialized = False
+    switches_initialized = False
     last_poll = None
     bindings = None
 
     def __init__ (self, *args, **kwargs):
-        super(Switches, self).__init__(*args, **kwargs)
+        self.args = args
+        self.kwargs = kwargs
         self.last_poll = tuple([True for _ in range(0, 16)])
         self.bindings = {}
+        try:
+            self.init_ioexpander()
+            self.init_switches()
+        except:
+            pass
+
+    def init_ioexpander (self):
+        super(Switches, self).__init__(*self.args, **self.kwargs)
+        self.ioexpander_initialized = True
+
+    def init_switches (self):
         for i in range(0, 16):
             self.setup(i, GPIO.IN)
             self.pullup(i, True)
+        self.switches_initialized = True
 
-    def poll (self):
-        state = self.input_pins(range(0, 16))
+    def poll (self, t):
+        if not self.ioexpander_initialized:
+            if t > self.last_init_attempt + 5:
+                try:
+                    self.last_init_attempt = t
+                    self.init_ioexpander()
+                except OSError:
+                    raise GameError("ioexpander not initialized", (0x33, 0x11, 0))
+            else:
+                raise GameError("ioexpander not initialized", (0x33, 0x11, 0))
+        elif not self.switches_initialized:
+            if t > self.last_init_attempt + 5:
+                try:
+                    self.last_init_attempt = t
+                    self.init_switches()
+                except OSError:
+                    raise GameError("switches not initialized", (0x11, 0x00, 0x33))
+            else:
+                raise GameError("switches not initialized", (0x11, 0x00, 0x33))
+        try:
+            state = self.input_pins(range(0, 16))
+        except OSError as e:
+            raise GameError("switches.poll failed", (0x33, 0x11, 0))
         for i,(now,prev) in enumerate(zip(state, self.last_poll)):
             if now is False and prev is True:
                 if i in self.bindings:
@@ -647,9 +686,9 @@ class Pond (SampleBase):
     def mode_gameplay (self, t):
         ##XXX: what if another mode wants different bindings?
         try:
-            self.switches.poll()
-        except OSError as e:
-            self.error = GameError("switches.poll failed", (0x33, 0x11, 0))
+            self.switches.poll(t)
+        except GameError as e:
+            self.error = e
             print(e)
 
         ## compute state
