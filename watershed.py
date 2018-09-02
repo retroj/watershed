@@ -571,7 +571,7 @@ class Mud ():
 class Pond (SampleBase):
     ## config
     healthsteps = 10
-    active_spawners = [Fish, Rain]
+    active_spawners = []
 
     ## internal
     mud = None
