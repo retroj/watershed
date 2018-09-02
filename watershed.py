@@ -148,7 +148,7 @@ class LEDStripMob (Mob):
     name = "unknown LEDStripMob"
     stripsection = None
     color = (0, 0, 0)
-    length = 7 ## length of baddroplet on strip
+    length = 7 ## length of droplet on strip
     start_x = 32
     airspeed = (0, 8)
     waterspeed = (0, 5)
