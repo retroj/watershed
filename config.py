@@ -2,6 +2,27 @@
 Pond.healthsteps = 12
 Pond.active_spawners = [Fish, Rain]
 
+## 5m test setup
+# Pond.ledstrip_sections = [
+#     { "name": "wave", "length": 37, "direction": -1 },
+#     { "name": "rain", "length": 37, "direction": -1,
+#       "voffset": -1, "vmul": -1 },
+#     { "name": "gooddroplet", "length": 37, "direction": 1,
+#       "voffset": -1, "vmul": -1 },
+#     { "name": "baddroplet", "length": 37, "direction": -1,
+#       "voffset": -1, "vmul": -1 }]
+
+## full deployment setup
+Pond.ledstrip_sections=[
+    { "name": "wave", "length": 150, "direction": -1 },
+    { "name": "rain", "length": 121, "direction": -1,
+      "voffset": -1, "vmul": -1 },
+    { "name": "gooddroplet", "length": 65, "direction": 1,
+      "voffset": -1, "vmul": -1 },
+    { "name": "baddroplet", "length": 66, "direction": -1,
+      "voffset": -1, "vmul": -1 }]
+
+
 Rain.length = 7
 Rain.color = (0, 0, 0xff)
 Rain.start_x = 10
