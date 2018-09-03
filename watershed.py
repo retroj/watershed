@@ -123,18 +123,18 @@ class Mob ():
     """
     Base class for sprites.
     """
-    spawn_time = None
     sprite = None
     mask = None
     width = 0
     height = 0
     position = (0, 0)
     start_position = (0, 0)
+    start_position_time = None
     speed = (0, 5)
     z = 0
 
     def __init__ (self, pond, t):
-        self.spawn_time = t
+        self.start_position_time = t
 
     def update (self, pond, t):
         return True
@@ -142,9 +142,12 @@ class Mob ():
     def update_position (self, t):
         x0, y0 = self.start_position
         sx, sy = self.speed
-        dt = t - self.spawn_time
+        dt = t - self.start_position_time
         self.position = (int(x0 + sx * dt), int(y0 + sy * dt))
         return self.position
+
+    def scram (self, t):
+        return 0
 
     @staticmethod
     def init_static ():
@@ -415,6 +418,15 @@ class Fish (Mob):
         pond.canvas.paste(self.sprite, self.position, self.mask)
         return True
 
+    def scram (self, t):
+        (sx, sy) = self.speed
+        direction = -1 if sx < 0 else 1
+        (x1, y1) = self.start_position = self.position
+        self.start_position_time = t
+        self.speed = (sx, sy) = (direction * 20, sy)
+        x2 = -self.width if direction < 0 else pond.width
+        return (x2 - x1) / sx ## time to clear board
+
     @staticmethod
     def init_static ():
         Fish.sprites = []
@@ -584,10 +596,115 @@ class Mud ():
         pond.canvas.paste(self.canvas, (0, 0), self.mask)
 
 
+class Mode ():
+    pond = None
+
+    def __init__ (self, pond):
+        self.pond = pond
+
+
+class ModeGameplay (Mode):
+    def __init__ (self, pond):
+        super(ModeGameplay, self).__init__(pond)
+        print("Mode: Gameplay")
+        pond.level = pond.initial_level
+        pond.update_level_px()
+
+    def runframe (self, t):
+        pond = self.pond
+        ##XXX: what if another mode wants different bindings?
+        try:
+            pond.switches.poll(t)
+        except GameError as e:
+            pond.error = e
+            print(e)
+
+        ## compute state
+        ##
+        pond.adjust_level()
+        pond.spawn_mobs(t)
+
+        ## draw internal canvas
+        ##
+        pond.draw_bg()
+        pond.mud.draw(pond, t)
+        pond.draw_mobs(t)
+
+
+class ModeStartGame (Mode):
+    start_time = None
+
+    def __init__ (self, pond):
+        super(ModeStartGame, self).__init__(pond)
+        print("Mode: StartGame")
+        t = time()
+        self.start_time = t
+        pond.health = 1.0
+        pond.mud = Mud()
+
+
+    def runframe (self, t):
+        pond = self.pond
+
+        ## fill the pond
+        ##
+        pond.level = (t - self.start_time) / 5 * pond.initial_level
+        pond.update_level_px()
+        if pond.level >= pond.initial_level:
+            pond.current_mode = ModeGameplay(pond)
+
+        ## draw internal canvas
+        ##
+        pond.draw_bg()
+        pond.draw_mobs(t)
+
+
+
+class ModeReset (Mode):
+    start_time = None
+    board_clear_time = None
+    lower_level_last_time = time()
+
+    def __init__ (self, pond):
+        super(ModeReset, self).__init__(pond)
+        print("Mode: Reset")
+        t = time()
+        self.start_time = t
+        scramtime = 0
+        for mob in pond.mobs:
+            scramtime = max(scramtime, mob.scram(t))
+        self.board_clear_time = self.start_time + scramtime
+
+    def adjust_level_for_reset (self, t):
+        pond = self.pond
+        if t >= self.lower_level_last_time + 0.25:
+            if pond.level_px < pond.height:
+                pond.level_px += 1
+                pond.level = (pond.height - pond.level_px) / pond.height
+            self.lower_level_last_time = t
+
+    def runframe (self, t):
+        pond = self.pond
+
+        ## drain the pond (sorry, fish!)
+        ##
+        if t >= self.board_clear_time:
+            self.adjust_level_for_reset(t)
+            if pond.level_px >= pond.height:
+                pond.current_mode = ModeStartGame(pond)
+
+        ## draw internal canvas
+        ##
+        pond.draw_bg()
+        pond.mud.draw(pond, t)
+        pond.draw_mobs(t)
+
+
 class Pond (SampleBase):
     ## config
     healthsteps = 10
     active_spawners = []
+    initial_level = 0.7
 
     ## internal
     mud = None
@@ -598,14 +715,13 @@ class Pond (SampleBase):
     canvas = None
     health = 1.0
     watercolor = None
-    level = 0.7
+    level = 0
     level_px = 0
     mobs = None
-    resetstart = None
+    current_mode = None
 
     def __init__ (self, *args, **kwargs):
         super(Pond, self).__init__(*args, **kwargs)
-        self.mud = Mud()
         for spawner in self.active_spawners:
             spawner.init_static()
         self.mobs = []
@@ -615,15 +731,18 @@ class Pond (SampleBase):
         self.switches.bind(7, lambda: BadDroplet.spawn(self, time()))
         self.ledstrip = LEDStrip()
         self.wave = Wave(self.ledstrip.sections["wave"])
+        self.current_mode = ModeStartGame(self)
 
     def reset (self):
-        print("reset requested")
-        self.resetstart = time()
+        self.current_mode = ModeReset(self)
 
     def add_mob (self, m):
         z = m.z
         i = next((i for i,x in enumerate(self.mobs) if x.z > z), len(self.mobs))
         self.mobs.insert(i, m)
+
+    def update_level_px (self):
+        self.level_px = int(self.level * -32 + 32)
 
     def adjust_level (self):
         l = self.level
@@ -633,7 +752,7 @@ class Pond (SampleBase):
             sign = 1 if rand >= threshold * 0.5 else -1
             l = l + 1/32.0 * sign
             self.level = max(min(l, 0.9), 0.4)
-            self.level_px = int(self.level * -32 + 32)
+            self.update_level_px()
 
     def spawn_mobs (self, t):
         for x in self.active_spawners:
@@ -650,31 +769,11 @@ class Pond (SampleBase):
                            for a,b in zip(healthycolor, pollutedcolor)]
         colorname = "rgb({},{},{})".format(*self.watercolor)
         w, h = self.width, self.height
-        level_px = int(self.level * -32 + 32)
-        self.draw.rectangle((0,0,w-1,level_px-1), "#000000")
-        self.draw.rectangle((0,level_px,w-1,h-1), colorname)
+        self.draw.rectangle((0,0,w-1,self.level_px-1), "#000000")
+        self.draw.rectangle((0,self.level_px,w-1,h-1), colorname)
 
     def draw_mobs (self, t):
         self.mobs = [mob for mob in self.mobs if mob.update(self, t)]
-
-    def mode_gameplay (self, t):
-        ##XXX: what if another mode wants different bindings?
-        try:
-            self.switches.poll(t)
-        except GameError as e:
-            self.error = e
-            print(e)
-
-        ## compute state
-        ##
-        self.adjust_level()
-        self.spawn_mobs(t)
-
-        ## draw internal canvas
-        ##
-        self.draw_bg()
-        self.mud.draw(self, t)
-        self.draw_mobs(t)
 
     def run (self):
         double_buffer = self.matrix.CreateFrameCanvas()
@@ -682,15 +781,13 @@ class Pond (SampleBase):
         self.height = double_buffer.height
         self.canvas = Image.new("RGB", (self.width, self.height))
         self.draw = ImageDraw.Draw(self.canvas)
-        self.level_px = int(self.level * -32 + 32)
+        self.update_level_px()
 
         while True:
             self.error = None
             t = time()
 
-            ##XXX: this will call 'current_mode' in order to support reset
-            ##     and perhaps other modes like startup.
-            self.mode_gameplay(t)
+            self.current_mode.runframe(t)
 
             ## if there was an error, set visual indicator
             if self.error:
