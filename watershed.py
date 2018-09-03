@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import sys
+import os, sys
 from math import *
 from time import sleep, time
 from random import random, randint, getrandbits
@@ -63,19 +63,22 @@ class LEDStripSection ():
 
 
 class LEDStrip ():
+    datapin = 24
+    clockpin = 25
     npixels = 0
     strip = None
     buffer = None
+    sections_spec = []
     sections = None
 
-    def __init__ (self, datapin=24, clockpin=25, sections=[]):
-        self.npixels = self.calc_npixels(sections)
-        self.strip = Adafruit_DotStar(self.npixels, datapin, clockpin)
+    def __init__ (self):
+        self.npixels = self.calc_npixels(self.sections_spec)
+        self.strip = Adafruit_DotStar(self.npixels, self.datapin, self.clockpin)
         self.buffer = bytearray(self.npixels * 4)
         for i in range(0, self.npixels):
             self.buffer[i * 4] = 0xff
         self.sections = {}
-        for spec in sections:
+        for spec in self.sections_spec:
             self.add_section(**spec)
         self.strip.begin()
 
@@ -468,57 +471,31 @@ class Wave ():
         self.lst[1:] = bytearray((b, g, r))
 
 
-class Switches (MCP23017):
-    args = None
-    kwargs = None
+class Switches ():
+    i2c_address = 0x20
+    ioexpander = None
     last_init_attempt = time()
-    ioexpander_initialized = False
-    switches_initialized = False
     last_poll = None
     bindings = None
 
-    def __init__ (self, *args, **kwargs):
-        self.args = args
-        self.kwargs = kwargs
+    def __init__ (self):
         self.last_poll = tuple([True for _ in range(0, 16)])
         self.bindings = {}
         try:
-            self.init_ioexpander()
-            self.init_switches()
-        except:
-            pass
-
-    def init_ioexpander (self):
-        super(Switches, self).__init__(*self.args, **self.kwargs)
-        self.ioexpander_initialized = True
-
-    def init_switches (self):
-        for i in range(0, 16):
-            self.setup(i, GPIO.IN)
-            self.pullup(i, True)
-        self.switches_initialized = True
+            self.ioexpander = MCP23017(address = self.i2c_address)
+            for i in range(0, 16):
+                self.ioexpander.setup(i, GPIO.IN)
+                self.ioexpander.pullup(i, True)
+        except Exception as e:
+            print(e)
+            exit(1)
+            # print("failed to initialize MCD23017 I/O Expander. Rebooting in 30 seconds.")
+            # sleep(30)
+            # os.system("reboot")
 
     def poll (self, t):
-        if not self.ioexpander_initialized:
-            if t > self.last_init_attempt + 5:
-                try:
-                    self.last_init_attempt = t
-                    self.init_ioexpander()
-                except OSError:
-                    raise GameError("ioexpander not initialized", (0x33, 0x11, 0))
-            else:
-                raise GameError("ioexpander not initialized", (0x33, 0x11, 0))
-        elif not self.switches_initialized:
-            if t > self.last_init_attempt + 5:
-                try:
-                    self.last_init_attempt = t
-                    self.init_switches()
-                except OSError:
-                    raise GameError("switches not initialized", (0x11, 0x00, 0x33))
-            else:
-                raise GameError("switches not initialized", (0x11, 0x00, 0x33))
         try:
-            state = self.input_pins(range(0, 16))
+            state = self.ioexpander.input_pins(range(0, 16))
         except OSError as e:
             raise GameError("switches.poll failed", (0x33, 0x11, 0))
         for i,(now,prev) in enumerate(zip(state, self.last_poll)):
@@ -611,7 +588,6 @@ class Pond (SampleBase):
     ## config
     healthsteps = 10
     active_spawners = []
-    ledstrip_sections = []
 
     ## internal
     mud = None
@@ -633,13 +609,11 @@ class Pond (SampleBase):
         for spawner in self.active_spawners:
             spawner.init_static()
         self.mobs = []
-        self.switches = Switches(address = 0x20)
+        self.switches = Switches()
         self.switches.bind(5, lambda: self.reset())
         self.switches.bind(6, lambda: GoodDroplet.spawn(self, time()))
         self.switches.bind(7, lambda: BadDroplet.spawn(self, time()))
-        self.ledstrip = LEDStrip(
-            datapin=24, clockpin=25,
-            sections=self.ledstrip_sections)
+        self.ledstrip = LEDStrip()
         self.wave = Wave(self.ledstrip.sections["wave"])
 
     def reset (self):

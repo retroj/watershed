@@ -1,27 +1,31 @@
 
-Pond.healthsteps = 12
-Pond.active_spawners = [Fish, Rain]
+Switches.i2c_address = 0x20
+
+LEDStrip.datapin = 24
+LEDStrip.clockpin = 25
 
 ## 5m test setup
-# Pond.ledstrip_sections = [
-#     { "name": "wave", "length": 37, "direction": -1 },
-#     { "name": "rain", "length": 37, "direction": -1,
-#       "voffset": -1, "vmul": -1 },
-#     { "name": "gooddroplet", "length": 37, "direction": 1,
-#       "voffset": -1, "vmul": -1 },
-#     { "name": "baddroplet", "length": 37, "direction": -1,
-#       "voffset": -1, "vmul": -1 }]
-
-## full deployment setup
-Pond.ledstrip_sections=[
-    { "name": "wave", "length": 150, "direction": -1 },
-    { "name": "rain", "length": 121, "direction": -1,
+LEDStrip.sections_spec = [
+    { "name": "wave", "length": 37, "direction": -1 },
+    { "name": "rain", "length": 37, "direction": -1,
       "voffset": -1, "vmul": -1 },
-    { "name": "gooddroplet", "length": 65, "direction": 1,
+    { "name": "gooddroplet", "length": 37, "direction": 1,
       "voffset": -1, "vmul": -1 },
-    { "name": "baddroplet", "length": 66, "direction": -1,
+    { "name": "baddroplet", "length": 37, "direction": -1,
       "voffset": -1, "vmul": -1 }]
 
+## full deployment setup
+# LEDStrip.sections_spec = [
+#     { "name": "wave", "length": 150, "direction": -1 },
+#     { "name": "rain", "length": 121, "direction": -1,
+#       "voffset": -1, "vmul": -1 },
+#     { "name": "gooddroplet", "length": 65, "direction": 1,
+#       "voffset": -1, "vmul": -1 },
+#     { "name": "baddroplet", "length": 66, "direction": -1,
+#       "voffset": -1, "vmul": -1 }]
+
+Pond.healthsteps = 12
+Pond.active_spawners = [Fish, Rain]
 
 Rain.length = 7
 Rain.color = (0, 0, 0xff)
