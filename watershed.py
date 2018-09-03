@@ -519,6 +519,9 @@ class Switches ():
     def bind (self, i, thunk):
         self.bindings[i] = thunk
 
+    def clearbindings (self):
+        self.bindings = {}
+
 
 class Mud ():
     lastupdate = time()
@@ -601,6 +604,7 @@ class Mode ():
 
     def __init__ (self, pond):
         self.pond = pond
+        pond.switches.clearbindings()
 
 
 class ModeGameplay (Mode):
@@ -609,10 +613,16 @@ class ModeGameplay (Mode):
         print("Mode: Gameplay")
         pond.level = pond.initial_level
         pond.update_level_px()
+        pond.switches.bind(5, lambda: self.reset())
+        pond.switches.bind(6, lambda: GoodDroplet.spawn(pond, time()))
+        pond.switches.bind(7, lambda: BadDroplet.spawn(pond, time()))
+
+    def reset (self):
+        pond = self.pond
+        pond.current_mode = ModeReset(pond)
 
     def runframe (self, t):
         pond = self.pond
-        ##XXX: what if another mode wants different bindings?
         try:
             pond.switches.poll(t)
         except GameError as e:
@@ -726,15 +736,9 @@ class Pond (SampleBase):
             spawner.init_static()
         self.mobs = []
         self.switches = Switches()
-        self.switches.bind(5, lambda: self.reset())
-        self.switches.bind(6, lambda: GoodDroplet.spawn(self, time()))
-        self.switches.bind(7, lambda: BadDroplet.spawn(self, time()))
         self.ledstrip = LEDStrip()
         self.wave = Wave(self.ledstrip.sections["wave"])
         self.current_mode = ModeStartGame(self)
-
-    def reset (self):
-        self.current_mode = ModeReset(self)
 
     def add_mob (self, m):
         z = m.z
