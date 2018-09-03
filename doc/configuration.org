@@ -92,3 +92,30 @@ Try stopping and starting the service.  Look in the journal to see if any errors
  : $ sudo journalctl -u watershed
 
 Try running the watershed program from the command line, not as a system service.
+* Hardware
+** Raspberry Pi 3B
+** Switches
+
+The switches are connected to an MCP23017 IO expander, which operates on the I2C bus, address 0x20.
+
+** LED Strip
+** LED Matrix
+
+The matrix runs on an Adafruit RGB Matrix + RTC HAT.  GPIO #4 and #18 are
+bridged for higher quality display.
+
+We are not using the RTC (Realtime clock), but it uses I2C address 0x68.  It is not clear to me whether this address is taken even if we are not using the clock.
+
+* Raspbian 9.4 (Stretch)
+** Enable I2C
+
+Use raspi-config to enable the I2C kernel module.
+
+** Remove Raspberry Pi logo from top left of terminal
+
+ - Edit /boot/cmdline.txt
+ - Insert "logo.nologo" into the list of options.
+ - example:
+
+    : logo.nologo dwc_otg.lpm_enable=0 console=ttyAMA0,115200 console=tty1
+    :    root=/dev/mmcblk0p2 rootfstype=ext4 elevator=deadline rootwait
