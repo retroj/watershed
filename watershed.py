@@ -101,6 +101,7 @@ class AssetManager ():
     generated on demand by the first call to the 'get' method. They can be
     files on disk or a 'generate' procedure that creates the Image.
     """
+    root = None
     assets = {}
 
     @staticmethod
@@ -109,7 +110,11 @@ class AssetManager ():
             if generate:
                 img = generate()
             else:
-                img = Image.open(name)
+                if AssetManager.root:
+                    path = os.path.join(AssetManager.root, name)
+                else:
+                    path = name
+                img = Image.open(path)
             r, g, b, a = img.split()
             sprite = Image.merge("RGB", (r, g, b))
             mask = Image.merge("L", (a,))
@@ -818,7 +823,10 @@ class Pond (SampleBase):
 
 
 if __name__ == "__main__":
-    with open("config.py") as f:
+    selfdir = os.path.dirname(__file__)
+    AssetManager.root = selfdir
+    configpath = os.path.join(selfdir, "config.py")
+    with open(configpath) as f:
         code = compile(f.read(), "config.py", 'exec')
         exec(code)
     pond = Pond()
