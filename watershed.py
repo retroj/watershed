@@ -144,6 +144,12 @@ class Mob ():
     def update (self, pond, t):
         return True
 
+    def change_trajectory (self, t, speed):
+        if speed != self.speed:
+            self.start_position = self.position
+            self.start_position_time = t
+            self.speed = speed
+
     def update_position (self, t):
         x0, y0 = self.start_position
         sx, sy = self.speed
@@ -342,8 +348,8 @@ class Droplet (LEDStripMob):
     def update (self, pond, t):
         (x1, y1) = self.position
         (x2, y2) = self.update_position(t)
-        # if y2 >= pond.level_px:
-        #     self.speed = self.waterspeed
+        if y2 >= pond.level_px:
+            self.change_trajectory(t, self.waterspeed)
         if x2 != x1 or y2 != y1: # ledstrip only needs update on change
             if y2 < self.length: # at least part of tail is on strip
                 self.draw_on_strip()
@@ -426,9 +432,9 @@ class Fish (Mob):
     def scram (self, t):
         (sx, sy) = self.speed
         direction = -1 if sx < 0 else 1
-        (x1, y1) = self.start_position = self.position
-        self.start_position_time = t
-        self.speed = (sx, sy) = (direction * 20, sy)
+        self.change_trajectory(t, (direction * 20, sy))
+        (x1, _) = self.position
+        (sx, _) = self.speed
         x2 = -self.width if direction < 0 else pond.width
         return (x2 - x1) / sx ## time to clear board
 
