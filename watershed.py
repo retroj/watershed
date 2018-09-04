@@ -621,6 +621,17 @@ class ModeGameplay (Mode):
         pond = self.pond
         pond.current_mode = ModeReset(pond)
 
+    def adjust_level (self):
+        pond = self.pond
+        l = pond.level
+        rand = random()
+        threshold = 0.0001
+        if rand < threshold:
+            sign = 1 if rand >= threshold * 0.5 else -1
+            l = l + 1/32.0 * sign
+            pond.level = max(min(l, 0.9), 0.4)
+            pond.update_level_px()
+
     def runframe (self, t):
         pond = self.pond
         try:
@@ -631,7 +642,7 @@ class ModeGameplay (Mode):
 
         ## compute state
         ##
-        pond.adjust_level()
+        self.adjust_level()
         pond.spawn_mobs(t)
 
         ## draw internal canvas
@@ -666,6 +677,7 @@ class ModeStartGame (Mode):
         ## draw internal canvas
         ##
         pond.draw_bg()
+        pond.mud.draw(pond, t)
         pond.draw_mobs(t)
 
 
@@ -673,6 +685,7 @@ class ModeStartGame (Mode):
 class ModeReset (Mode):
     start_time = None
     board_clear_time = None
+    pond_start_level = None
     lower_level_last_time = time()
 
     def __init__ (self, pond):
@@ -685,21 +698,17 @@ class ModeReset (Mode):
             scramtime = max(scramtime, mob.scram(t))
         self.board_clear_time = self.start_time + scramtime
 
-    def adjust_level_for_reset (self, t):
-        pond = self.pond
-        if t >= self.lower_level_last_time + 0.25:
-            if pond.level_px < pond.height:
-                pond.level_px += 1
-                pond.level = (pond.height - pond.level_px) / pond.height
-            self.lower_level_last_time = t
-
     def runframe (self, t):
         pond = self.pond
 
         ## drain the pond (sorry, fish!)
         ##
         if t >= self.board_clear_time:
-            self.adjust_level_for_reset(t)
+            self.pond_start_level = self.pond_start_level or pond.level
+            drain_duration = self.pond_start_level * 5
+            pond.level = self.pond_start_level - \
+                ((t - self.board_clear_time) / drain_duration * self.pond_start_level)
+            pond.update_level_px()
             if pond.level_px >= pond.height:
                 pond.current_mode = ModeStartGame(pond)
 
@@ -747,16 +756,6 @@ class Pond (SampleBase):
 
     def update_level_px (self):
         self.level_px = int(self.level * -32 + 32)
-
-    def adjust_level (self):
-        l = self.level
-        rand = random()
-        threshold = 0.0001
-        if rand < threshold:
-            sign = 1 if rand >= threshold * 0.5 else -1
-            l = l + 1/32.0 * sign
-            self.level = max(min(l, 0.9), 0.4)
-            self.update_level_px()
 
     def spawn_mobs (self, t):
         for x in self.active_spawners:
