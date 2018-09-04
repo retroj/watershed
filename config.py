@@ -46,3 +46,6 @@ BadDroplet.color = (0xaa, 0, 0)
 BadDroplet.start_x = 40
 BadDroplet.airspeed = (-1.5, 8)
 BadDroplet.waterspeed = (0, 5)
+
+## how many seconds after a switch is pressed to reset the game (None to disable)
+ModeGameplay.auto_reset = 300

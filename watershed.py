@@ -489,6 +489,7 @@ class Switches ():
     last_init_attempt = time()
     last_poll = None
     bindings = None
+    last_press = time()
 
     def __init__ (self):
         self.last_poll = tuple([True for _ in range(0, 16)])
@@ -512,6 +513,7 @@ class Switches ():
             raise GameError("switches.poll failed", (0x33, 0x11, 0))
         for i,(now,prev) in enumerate(zip(state, self.last_poll)):
             if now is False and prev is True:
+                self.last_press = t
                 if i in self.bindings:
                     self.bindings[i]()
         self.last_poll = state
@@ -605,9 +607,12 @@ class Mode ():
     def __init__ (self, pond):
         self.pond = pond
         pond.switches.clearbindings()
+        pond.switches.last_press = time()
 
 
 class ModeGameplay (Mode):
+    auto_reset = None
+
     def __init__ (self, pond):
         super(ModeGameplay, self).__init__(pond)
         print("Mode: Gameplay")
@@ -639,6 +644,9 @@ class ModeGameplay (Mode):
         except GameError as e:
             pond.error = e
             print(e)
+
+        if self.auto_reset and t >= pond.switches.last_press + self.auto_reset:
+            pond.current_mode = ModeReset(pond)
 
         ## compute state
         ##
