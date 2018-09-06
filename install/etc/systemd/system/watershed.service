@@ -5,6 +5,8 @@ Description=Watershed exhibit
 ExecStart=/home/pi/watershed/watershed.py
 WorkingDirectory=/home/pi/watershed
 KillSignal=SIGINT
+Restart=always
+RestartSec=30
 
 [Install]
 WantedBy=default.target
