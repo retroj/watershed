@@ -505,17 +505,10 @@ class Switches ():
     def __init__ (self):
         self.last_poll = tuple([True for _ in range(0, 16)])
         self.bindings = {}
-        try:
-            self.ioexpander = MCP23017(address = self.i2c_address)
-            for i in range(0, 16):
-                self.ioexpander.setup(i, GPIO.IN)
-                self.ioexpander.pullup(i, True)
-        except Exception as e:
-            print(e)
-            exit(1)
-            # print("failed to initialize MCD23017 I/O Expander. Rebooting in 30 seconds.")
-            # sleep(30)
-            # os.system("reboot")
+        self.ioexpander = MCP23017(address = self.i2c_address)
+        for i in range(0, 16):
+            self.ioexpander.setup(i, GPIO.IN)
+            self.ioexpander.pullup(i, True)
 
     def poll (self, t):
         try:
