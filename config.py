@@ -1,4 +1,6 @@
 
+from Rain import Rain
+
 Switches.i2c_address = 0x27
 
 LEDStrip.datapin = 24
