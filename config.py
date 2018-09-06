@@ -1,5 +1,5 @@
 
-Switches.i2c_address = 0x20
+Switches.i2c_address = 0x27
 
 LEDStrip.datapin = 24
 LEDStrip.clockpin = 25
