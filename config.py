@@ -1,5 +1,6 @@
 
 from Rain import Rain
+from Fish import Fish
 
 Switches.i2c_address = 0x27
 
