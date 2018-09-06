@@ -157,7 +157,7 @@ class Mob ():
         self.position = (int(x0 + sx * dt), int(y0 + sy * dt))
         return self.position
 
-    def scram (self, t):
+    def scram (self, pond, t):
         return 0
 
     @staticmethod
@@ -516,7 +516,7 @@ class ModeReset (Mode):
         self.start_time = t
         scramtime = 0
         for mob in pond.mobs:
-            scramtime = max(scramtime, mob.scram(t))
+            scramtime = max(scramtime, mob.scram(pond, t))
         self.board_clear_time = self.start_time + scramtime
 
     def runframe (self, t):

@@ -39,7 +39,7 @@ class Fish (Mob):
         pond.canvas.paste(self.sprite, self.position, self.mask)
         return True
 
-    def scram (self, t):
+    def scram (self, pond, t):
         (sx, sy) = self.speed
         direction = -1 if sx < 0 else 1
         self.change_trajectory(t, (direction * 20, sy))
