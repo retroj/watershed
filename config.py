@@ -31,6 +31,8 @@ Pond.healthsteps = 12
 Pond.active_spawners = [Fish, Rain]
 Pond.initial_level = 0.7
 
+Mud.update_rate = 0.75
+
 Rain.length = 7
 Rain.color = (0, 0, 0xff)
 Rain.start_x = 0

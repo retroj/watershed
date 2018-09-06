@@ -336,8 +336,11 @@ class Switches ():
 
 
 class Mud ():
+    ## config
+    update_rate = 0.75
+
+    ## internal
     lastupdate = time()
-    updaterate = 0.75
     value = 0
     levels = None
     canvas = None
@@ -405,7 +408,7 @@ class Mud ():
         self.value = value
 
     def draw (self, pond, t):
-        if t >= self.lastupdate + self.updaterate:
+        if t >= self.lastupdate + self.update_rate:
             self.runphysics(pond, t)
             self.lastupdate = t
         pond.canvas.paste(self.canvas, (0, 0), self.mask)
