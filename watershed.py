@@ -9,6 +9,7 @@ from PIL import Image, ImageDraw
 from dotstar import Adafruit_DotStar
 import Adafruit_GPIO as GPIO
 from Adafruit_GPIO.MCP230xx import MCP23017
+from AssetManager import AssetManager
 
 tau = asin(1.0) * 4 ## not needed if python >= 3.6
 
@@ -93,35 +94,6 @@ class LEDStrip ():
     def add_section (self, name = None, offset = None, length = 0,
                      direction = 1, voffset = 0, vmul = 1):
         self.sections[name] = LEDStripSection(self, offset, length, direction, voffset, vmul)
-
-
-class AssetManager ():
-    """
-    AssetManager manages a table of images for the sprites. They are
-    generated on demand by the first call to the 'get' method. They can be
-    files on disk or a 'generate' procedure that creates the Image.
-    """
-    root = None
-    assets = {}
-
-    @staticmethod
-    def get (name, generate=None):
-        if not name in AssetManager.assets:
-            if generate:
-                img = generate()
-            else:
-                if AssetManager.root:
-                    path = os.path.join(AssetManager.root, name)
-                else:
-                    path = name
-                img = Image.open(path)
-            r, g, b, a = img.split()
-            sprite = Image.merge("RGB", (r, g, b))
-            mask = Image.merge("L", (a,))
-            width, height = img.width, img.height
-            AssetManager.assets[name] = (name, sprite, mask, width, height)
-        return AssetManager.assets[name]
-
 
 
 class Mob ():

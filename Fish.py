@@ -1,5 +1,7 @@
 
-from watershed import *
+from random import *
+from AssetManager import AssetManager
+from watershed import Mob
 
 class Fish (Mob):
     name = "fish"
