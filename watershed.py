@@ -203,7 +203,9 @@ class Droplet (LEDStripMob):
                 self.draw_on_strip()
         if y2 >= 0 and y2 < pond.height: # matrix
             self.draw_on_matrix(pond, t)
-        if y2 + 1 >= pond.mud.levels[x2] or y2 + 1 >= pond.height:
+        mudlevels = pond.mud.levels
+        mudlevel = min(mudlevels[x2], mudlevels[x2 - 1], mudlevels[x2 + 1])
+        if y2 + 1 >= mudlevel or y2 + 1 >= pond.height:
             ## turn this over to the mud
             print("despawning "+self.name)
             pond.mud.add(self)
