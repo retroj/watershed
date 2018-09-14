@@ -21,9 +21,11 @@ class GameError (Exception):
         self.message = message
         self.color = color
 
+
 def color_darken (color, factor):
     r, g, b = color
     return (int(r * factor), int(g * factor), int(b * factor))
+
 
 def color_blend (color1, color2, factor):
     r1, g1, b1 = color1
@@ -32,6 +34,7 @@ def color_blend (color1, color2, factor):
     g3 = int((g2 - g1) * factor + g1)
     b3 = int((b2 - b1) * factor + b1)
     return (r3, g3, b3)
+
 
 class LEDStripSection ():
     offset = 0
