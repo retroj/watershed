@@ -11,6 +11,8 @@ import Adafruit_GPIO as GPIO
 from Adafruit_GPIO.MCP230xx import MCP23017
 from AssetManager import AssetManager
 
+version = (1, 0, 0)
+
 tau = asin(1.0) * 4 ## not needed if python >= 3.6
 
 class GameError (Exception):
