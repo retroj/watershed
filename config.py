@@ -51,11 +51,11 @@ LEDStrip.clockpin = 25
 ## full deployment setup
 LEDStrip.sections_spec = [
     { "name": "wave", "length": 80, "direction": -1 },
-    { "name": "rain", "length": 121, "direction": -1,
+    { "name": "rain", "length": 121, "direction": 1,
       "voffset": -1, "vmul": -1 },
-    { "name": "gooddroplet", "length": 65, "direction": 1,
+    { "name": "gooddroplet", "length": 65, "direction": -1,
       "voffset": -1, "vmul": -1 },
-    { "name": "baddroplet", "length": 66, "direction": -1,
+    { "name": "baddroplet", "length": 66, "direction": 1,
       "voffset": -1, "vmul": -1 }]
 
 Pond.healthsteps = 12
@@ -75,13 +75,13 @@ Rain.fadetime = 3.5
 GoodDroplet.length = 7
 GoodDroplet.color = (0, 0, 0xcc)
 GoodDroplet.start_x = 20
-GoodDroplet.airspeed = (1.5, 8)
+GoodDroplet.airspeed = (1.5, 16)
 GoodDroplet.waterspeed = (1.5, 5)
 
 BadDroplet.length = 7
 BadDroplet.color = (0x66, 0, 0)
 BadDroplet.start_x = 48
-BadDroplet.airspeed = (-1.5, 10)
+BadDroplet.airspeed = (-1.5, 16)
 BadDroplet.waterspeed = (-1.5, 8)
 
 ## how many seconds after a switch is pressed to reset the game (None to disable)
