@@ -1,0 +1,27 @@
+
+* Parts
+** Pond
+
+Pond is the main game object.  Everything else runs through Pond.
+
+** Mud
+
+Droplets despawn when they fall to the Mud.  Mud draws the pile of
+droplets and performs the physics by which the pile settles under gravity
+and allows the droplets to decay.
+
+** Wave
+** Rain
+** GoodDroplet
+** BadDroplet
+** Fish
+** Switches
+
+* Config
+
+Many basic options can be configured by editing values in config.py.
+
+
+* The top right pixel of the matrix is used to indicate certain errors
+
+ - Orange :: switches.poll failed
