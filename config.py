@@ -50,7 +50,7 @@ LEDStrip.clockpin = 25
 
 ## full deployment setup
 LEDStrip.sections_spec = [
-    { "name": "wave", "length": 150, "direction": -1 },
+    { "name": "wave", "length": 80, "direction": -1 },
     { "name": "rain", "length": 121, "direction": -1,
       "voffset": -1, "vmul": -1 },
     { "name": "gooddroplet", "length": 65, "direction": 1,
