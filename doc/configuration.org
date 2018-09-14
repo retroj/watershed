@@ -2,6 +2,40 @@
 
 This document covers the configuration of the Watershedpi computer.  Some of the information here will be redundant of development.org, but that document is more wide-ranging in scope, covering many things that were not actually used in the project, while this document is limited to the actual final setup.  If things change in the future, please keep this document current with changes so that it can be referred to if the setup needs to be recreated.
 
+* Connections
+
+Ensure that the APC is off. (Longpress its power button.)
+
+** Connections on the Raspberry Pi base unit (bottom, green)
+
+ - Power (mini-USB)
+ - APC data link (USB)
+
+** Connections to IO Board (middle, white)
+
+ - Wave LED Strip on 4-pin JST pigtail
+ - Button connectors
+   - The buttons connect to the pairs of pins mounted on the front edge of the IO Board. There are 8 pairs here, and 8 more pairs near the back edge of the board. The near set are from left to right 1 through 8, and the far set are numbered (left to right) 9 through 16.
+   - 6 :: Reset switch
+   - 7 :: GoodDroplet switch
+   - 8 :: BadDroplet switch
+
+** RGB Matrix HAT (top, blue)
+
+ - Power in (barrel jack - 5 volt, 10 amp power supply)
+ - Power out (red and black wires into terminal block, red left, black right, to Matrix.)
+ - Data out (14 pin ribbon cable to Matrix)
+
+** LED Strips
+
+ - IO Board pigtail to Wave right with short extension (~55")
+ - 5v 10a power to Wave right
+ - Wave left to Rain bottom with long extension (~72")
+ - 5v 10a power to Rain bottom
+ - Rain top to GoodDroplet top with short extension (~55")
+ - GoodDroplet bottom to BadDroplet bottom
+ - 5v 4a power to GoodDroplet/BadDroplet junction
+
 * Power
 ** power off
 
@@ -92,6 +126,17 @@ Try stopping and starting the service.  Look in the journal to see if any errors
  : $ sudo journalctl -u watershed
 
 Try running the watershed program from the command line, not as a system service.
+
+** System freeze
+
+A system freeze may be hard to identify without a monitor and keyboard attached to the Pi, but the Pi's green LED will be lit, nothing will be on the matrix or LEDs (or the LEDs may retain a frozen last state), and you won't be able to ssh into the Pi.
+
+This happened once for me, and it's hard to say what the cause could be.  My guess would be not enough voltage to the matrix, or possibly some failed electronic component on the Pi or the matrix HAT.
+
+To deal with this, turn the APC off and then on again.
+
+If it happens regularly, we need to investigate further.
+
 * Hardware
 ** Raspberry Pi 3B
 ** Switches
@@ -107,9 +152,32 @@ bridged for higher quality display.
 We are not using the RTC (Realtime clock), but it uses I2C address 0x68.  It is not clear to me whether this address is taken even if we are not using the clock.
 
 * Raspbian 9.4 (Stretch)
-** Enable I2C
+** Raspi-config
 
-Use raspi-config to enable the I2C kernel module.
+Use the raspi-config tool to turn on and off interfacing options as appropriate:
+
+ - SSH :: on
+ - VNC :: off
+ - SPI :: off
+ - I2C :: on
+ - Serial :: off
+ - Remote GPIO :: off
+
+** System services
+
+Disable a few system services that are not needed:
+
+ : sudo systemctl stop bluetooth
+ : sudo systemctl disable bluetooth
+
+ : sudo systemctl stop bluetooth.target
+ : sudo systemctl disable bluetooth.target
+
+ : sudo systemctl stop apt-daily-upgrade
+ : sudo systemctl disable apt-daily-upgrade.timer
+
+ : sudo systemctl stop apt-daily
+ : sudo systemctl disable apt-daily.timer
 
 ** Remove Raspberry Pi logo from top left of terminal
 
@@ -119,3 +187,13 @@ Use raspi-config to enable the I2C kernel module.
 
     : logo.nologo dwc_otg.lpm_enable=0 console=ttyAMA0,115200 console=tty1
     :    root=/dev/mmcblk0p2 rootfstype=ext4 elevator=deadline rootwait
+
+* Software
+
+The program that runs the exhibit is called "watershed".  It is written in Python 3.5 and its installation location is `/home/pi/watershed`.
+
+It depends on a patched version of the Adafruit_Dotstar_Pi library.
+
+ - https://github.com/adafruit/Adafruit_DotStar_Pi
+
+ - https://github.com/adafruit/Adafruit_DotStar_Pi/issues/24
