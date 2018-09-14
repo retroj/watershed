@@ -337,8 +337,9 @@ class Mud ():
     def add (self, droplet):
         x, y = droplet.position
         self.levels[x] = y
-        self.canvas.putpixel((x, y), droplet.color)
-        self.mask.putpixel((x, y), 255)
+        if y >= 0:
+            self.canvas.putpixel((x, y), droplet.color)
+            self.mask.putpixel((x, y), 255)
 
     def runphysics (self, pond, t):
         cols = sorted(enumerate(self.levels), key=lambda x: x[1], reverse=True)
@@ -348,7 +349,7 @@ class Mud ():
         for x,level in cols:
             sp = None
             newlevel = level
-            for y in range(31, level - 1, -1):
+            for y in range(31, max(0, level - 1), -1):
                 c = self.canvas.getpixel((x, y))
                 if c == (0,0,0):                 ## space
                     sp = y ## if multiple spaces, this will be the top one
