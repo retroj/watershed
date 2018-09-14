@@ -321,6 +321,7 @@ class Switches ():
 class Mud ():
     ## config
     update_rate = 0.75
+    decay = None
 
     ## internal
     lastupdate = time()
@@ -354,7 +355,7 @@ class Mud ():
                 if c == (0,0,0):                 ## space
                     sp = y ## if multiple spaces, this will be the top one
                 else:                            ## droplet
-                    if random() < 0.002: ## random decay
+                    if self.decay and random() < self.decay: ## random decay
                         ## make a hole but don't fill it in this frame
                         self.canvas.putpixel((x, y), (0, 0, 0))
                         self.mask.putpixel((x, y), 0)
