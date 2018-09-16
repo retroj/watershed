@@ -115,6 +115,14 @@ You can enter this directory and run it without going through systemd as well:
  : $ sudo ./watershed.py
 
 * Troubleshooting
+** SD Card Corruption
+
+Corruption of the SD card could lead to all sorts of problems, including system freezes, and failure to boot or start the software.
+
+Unsafe shutdown is the most common cause of SD card corruption.  We address this potential by having the Pi run on a battery backup system so that it can safely shut down.
+
+We also keep a spare copy of the SD card in the Pi enclosure.  This can be [gently] swapped with the installed one if SD card corruption is suspected.
+
 ** Pi is working but watershed program didn't start
 
 Log in, check out the load status of watershed.service:
