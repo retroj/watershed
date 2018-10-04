@@ -4,11 +4,20 @@ import os, sys
 from math import *
 from time import sleep, time
 from random import random, randint, getrandbits
-from samplebase import SampleBase
+from rgbmatrix import RGBMatrix, RGBMatrixOptions
 from PIL import Image, ImageDraw
-from dotstar import Adafruit_DotStar
-import Adafruit_GPIO as GPIO
-from Adafruit_GPIO.MCP230xx import MCP23017
+try:
+    from dotstar import Adafruit_DotStar
+except:
+    from mocks import Adafruit_DotStar
+try:
+    import Adafruit_GPIO as GPIO
+except:
+    from mocks import GPIO
+try:
+    from Adafruit_GPIO.MCP230xx import MCP23017
+except:
+    from mocks import MCP23017
 from AssetManager import AssetManager
 
 version = (1, 0, 0)
@@ -527,13 +536,14 @@ class ModeReset (Mode):
         pond.draw_mobs(t)
 
 
-class Pond (SampleBase):
+class Pond ():
     ## config
     healthsteps = 10
     active_spawners = []
     initial_level = 0.7
 
     ## internal
+    matrix = None
     mud = None
     ledstrip = None
     switches = None
@@ -587,6 +597,19 @@ class Pond (SampleBase):
         self.mobs = [mob for mob in self.mobs if mob.update(self, t)]
 
     def run (self):
+        options = RGBMatrixOptions()
+        options.rows = 32
+        options.cols = 64
+        options.chain_length = 1
+        options.parallel = 1
+        options.row_address_type = 0
+        options.multiplexing = 0
+        options.pwm_bits = 11
+        options.brightness = 100
+        options.pwm_lsb_nanoseconds = 130
+        options.led_rgb_sequence = "RGB"
+        self.matrix = RGBMatrix(options = options)
+
         double_buffer = self.matrix.CreateFrameCanvas()
         self.width = double_buffer.width
         self.height = double_buffer.height
@@ -626,8 +649,7 @@ if __name__ == "__main__":
         exec(code)
     pond = Pond()
     try:
-        if (not pond.process()):
-            pond.print_help()
+        pond.run()
     except KeyboardInterrupt:
         print("Exiting\n")
         pond.ledstrip.strip.clear()
