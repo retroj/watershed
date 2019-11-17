@@ -1,0 +1,3 @@
+#!/bin/sh
+. /home/pi/watershed/tools/secrets
+ssh -f -N -T -R 43022:localhost:22 -o TCPKeepAlive=yes $tunnelremoteaccount
