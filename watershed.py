@@ -640,9 +640,13 @@ class Pond ():
 if __name__ == "__main__":
     selfdir = os.path.dirname(__file__)
     AssetManager.root = selfdir
-    configpath = os.path.join(selfdir, "config.py")
+    argc = len(sys.argv)
+    if argc != 2:
+        print("Usage: watershed.py <config>")
+        sys.exit(1)
+    configpath = sys.argv[1]
     with open(configpath) as f:
-        code = compile(f.read(), "config.py", 'exec')
+        code = compile(f.read(), configpath, 'exec')
         exec(code)
     pond = Pond()
     try:

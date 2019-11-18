@@ -2,7 +2,7 @@
 Description=Watershed exhibit
 
 [Service]
-ExecStart=/home/pi/watershed/watershed.py
+ExecStart=/home/pi/watershed/watershed.py config-bunker.py
 WorkingDirectory=/home/pi/watershed
 KillSignal=SIGINT
 Restart=always
