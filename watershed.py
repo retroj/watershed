@@ -425,8 +425,7 @@ class ModeGameplay (Mode):
     def __init__ (self, pond):
         super(ModeGameplay, self).__init__(pond)
         print("Mode: Gameplay")
-        pond.level = pond.initial_level
-        pond.update_level_px()
+        pond.set_level(pond.initial_level)
         pond.switches.bind(5, lambda: self.reset())
         pond.switches.bind(6, lambda: GoodDroplet.spawn(pond, time()))
         pond.switches.bind(7, lambda: BadDroplet.spawn(pond, time()))
@@ -443,8 +442,7 @@ class ModeGameplay (Mode):
         if rand < threshold:
             sign = 1 if rand >= threshold * 0.5 else -1
             l = l + 1/32.0 * sign
-            pond.level = max(min(l, 0.9), 0.4)
-            pond.update_level_px()
+            pond.set_level(max(min(l, 0.9), 0.4))
 
     def runframe (self, t):
         pond = self.pond
@@ -486,8 +484,7 @@ class ModeStartGame (Mode):
 
         ## fill the pond
         ##
-        pond.level = (t - self.start_time) / 5 * pond.initial_level
-        pond.update_level_px()
+        pond.set_level((t - self.start_time) / 5 * pond.initial_level)
         if pond.level >= pond.initial_level:
             pond.current_mode = ModeGameplay(pond)
 
@@ -523,9 +520,8 @@ class ModeReset (Mode):
         if t >= self.board_clear_time:
             self.pond_start_level = self.pond_start_level or pond.level
             drain_duration = self.pond_start_level * 5
-            pond.level = self.pond_start_level - \
-                ((t - self.board_clear_time) / drain_duration * self.pond_start_level)
-            pond.update_level_px()
+            pond.set_level(self.pond_start_level - \
+                ((t - self.board_clear_time) / drain_duration * self.pond_start_level))
             if pond.level_px >= pond.height:
                 pond.current_mode = ModeStartGame(pond)
 
@@ -572,7 +568,8 @@ class Pond ():
         i = next((i for i,x in enumerate(self.mobs) if x.z > z), len(self.mobs))
         self.mobs.insert(i, m)
 
-    def update_level_px (self):
+    def set_level (self, level):
+        self.level = level
         self.level_px = int(self.level * -32 + 32)
 
     def spawn_mobs (self, t):
@@ -615,7 +612,7 @@ class Pond ():
         self.height = double_buffer.height
         self.canvas = Image.new("RGB", (self.width, self.height))
         self.draw = ImageDraw.Draw(self.canvas)
-        self.update_level_px()
+        self.set_level(self.level)
 
         while True:
             self.error = None
