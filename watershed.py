@@ -187,20 +187,28 @@ class Droplet (LEDStripMob):
     start_x = 30
     airspeed = (1.5, 8)
     waterspeed = (1.5, 8)
+    trailfadetime = 0.8
 
     def draw_on_matrix (self, pond, t):
         trail_length = len(self.matrix_trail)
-        r,g,b = [x / 255.0 for x in self.color]
+
+        ## trail
         for i,((tx,ty),tt) in enumerate(self.matrix_trail):
-            if ty < pond.level_px:
-                f = i / trail_length * 200 - (t - tt) * 150
-                r2, g2, b2 = int(f * r), int(f * g), int(f * b)
-                if r2 or g2 or b2:
-                    pond.canvas.putpixel((tx, ty), (r2, g2, b2))
+            factor = (t - tt) / self.trailfadetime
+            if factor < 1.0:
+                if ty < pond.level_px:
+                    bgcolor = (0, 0, 0)
+                else:
+                    bgcolor = pond.watercolor
+                tcolor = color_blend(self.color, bgcolor, factor)
+                pond.canvas.putpixel((tx, ty), tcolor)
+
+        ## lead pixel
         pond.canvas.putpixel(self.position, self.color)
         x, y = self.position
-        if y < pond.level_px:
-            self.matrix_trail.append((self.position, t))
+        #if y < pond.level_px:
+        self.matrix_trail.append((self.position, t))
+
 
     ## Public Interface
     ##
