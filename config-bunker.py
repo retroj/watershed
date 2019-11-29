@@ -1,6 +1,7 @@
 
 from Rain import Rain
 from Fish import Fish
+from Bubbles import Bubbles
 
 Switches.i2c_address = 0x20
 Switches.throttle = 0.5
@@ -59,7 +60,7 @@ LEDStrip.sections_spec = [
       "voffset": -1, "vmul": -1 }]
 
 Pond.healthsteps = 120
-Pond.active_spawners = [Fish, Rain]
+Pond.active_spawners = [Fish, Rain, Bubbles]
 Pond.initial_level = 0.7
 
 Mud.update_rate = 0.5
