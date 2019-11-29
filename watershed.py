@@ -122,6 +122,8 @@ class MobCounter ():
         self.mobs[mob.name] += 1
 
     def remove (self, mob):
+        if mob.name not in self.mobs:
+            return ## mobs that don't despawn on reset
         if self.mobs[mob.name] > 1:
             self.mobs[mob.name] -= 1
         else:
