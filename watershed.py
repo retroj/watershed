@@ -168,7 +168,6 @@ class LEDStripMob (Mob):
         super(LEDStripMob, self).__init__(pond, t)
         self.speed = self.airspeed
         self.matrix_trail = []
-        print("spawning "+self.name+" "+str(int(t)))
         self.stripsection = pond.ledstrip.sections[self.name]
         self.start_position = (self.start_x, -(self.stripsection.length))
 
@@ -571,6 +570,11 @@ class Pond ():
         self.wave = Wave(self.ledstrip.sections["wave"])
         self.current_mode = ModeStartGame(self)
 
+    def log_status (self):
+        print("[h:{:4.2f}] {}".format(
+            self.health,
+            " ".join([x.name for x in self.mobs])))
+
     def add_mob (self, m):
         z = m.z
         i = next((i for i,x in enumerate(self.mobs) if x.z > z), len(self.mobs))
@@ -581,10 +585,14 @@ class Pond ():
         self.level_px = int(self.level * -32 + 32)
 
     def spawn_mobs (self, t):
+        newmobs = False
         for x in self.active_spawners:
             f = x.maybe_spawn(self, t)
             if f:
+                newmobs = True
                 self.add_mob(f)
+        if newmobs:
+            self.log_status()
 
     def draw_bg (self):
         """draw the pond onto self.canvas up to the level represented by self.level"""
@@ -599,7 +607,10 @@ class Pond ():
         self.draw.rectangle((0,self.level_px,w-1,h-1), colorname)
 
     def draw_mobs (self, t):
+        nmobs = len(self.mobs)
         self.mobs = [mob for mob in self.mobs if mob.update(self, t)]
+        if nmobs != len(self.mobs):
+            self.log_status()
 
     def run (self):
         options = RGBMatrixOptions()

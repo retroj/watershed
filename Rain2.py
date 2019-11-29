@@ -60,7 +60,6 @@ class Rain2 (LEDStripMob):
             self.time_entered_water = self.time_entered_water or t
             alive = self.draw_on_matrix(pond, t)
         if alive is False or y2 >= pond.height:
-            print("despawning "+self.name)
             return False
         return True
 

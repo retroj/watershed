@@ -33,10 +33,8 @@ class Fish (Mob):
         (x, y) = self.update_position(t)
         (sx, sy) = self.speed
         if sx > 0 and x >= pond.width:
-            print("despawning "+self.name)
             return False
         elif sx < 0 and x < -self.width:
-            print("despawning "+self.name)
             return False
         pond.canvas.paste(self.sprite, self.position, self.mask)
         return True
@@ -66,5 +64,4 @@ class Fish (Mob):
         ymin = pond.level_px + int(height * 0.5)
         ymax = pond.height - int(height * 1.5)
         if random() * pond.health**0.125 < 0.0005 and pond.health > 0.3 and ymin < ymax:
-            print("spawning "+shortname)
             return Fish(pond, t, randint(ymin, ymax), leftname, rightname)
