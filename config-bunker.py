@@ -9,47 +9,6 @@ Switches.throttle = 0.5
 LEDStrip.datapin = 24
 LEDStrip.clockpin = 25
 
-## 10 led test setup
-# LEDStrip.sections_spec = [
-#     { "name": "wave", "length": 3, "direction": -1 },
-#     { "name": "rain", "length": 3, "direction": -1,
-#       "voffset": -1, "vmul": -1 },
-#     { "name": "gooddroplet", "length": 2, "direction": 1,
-#       "voffset": -1, "vmul": -1 },
-#     { "name": "baddroplet", "length": 2, "direction": -1,
-#       "voffset": -1, "vmul": -1 }]
-
-## 29 led test setup
-# LEDStrip.sections_spec = [
-#     { "name": "wave", "length": 5, "direction": -1 },
-#     { "name": "rain", "length": 8, "direction": -1,
-#       "voffset": -1, "vmul": -1 },
-#     { "name": "gooddroplet", "length": 8, "direction": 1,
-#       "voffset": -1, "vmul": -1 },
-#     { "name": "baddroplet", "length": 8, "direction": -1,
-#       "voffset": -1, "vmul": -1 }]
-
-## 39 led test setup
-# LEDStrip.sections_spec = [
-#     { "name": "wave", "length": 9, "direction": -1 },
-#     { "name": "rain", "length": 10, "direction": -1,
-#       "voffset": -1, "vmul": -1 },
-#     { "name": "gooddroplet", "length": 10, "direction": 1,
-#       "voffset": -1, "vmul": -1 },
-#     { "name": "baddroplet", "length": 10, "direction": -1,
-#       "voffset": -1, "vmul": -1 }]
-
-## 5m test setup
-# LEDStrip.sections_spec = [
-#     { "name": "wave", "length": 37, "direction": -1 },
-#     { "name": "rain", "length": 37, "direction": -1,
-#       "voffset": -1, "vmul": -1 },
-#     { "name": "gooddroplet", "length": 37, "direction": 1,
-#       "voffset": -1, "vmul": -1 },
-#     { "name": "baddroplet", "length": 37, "direction": -1,
-#       "voffset": -1, "vmul": -1 }]
-
-## full deployment setup
 LEDStrip.sections_spec = [
     { "name": "wave", "length": 80, "direction": -1 },
     { "name": "rain", "length": 121, "direction": 1,
