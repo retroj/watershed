@@ -9,7 +9,7 @@ class Fish (Mob):
     width = 0
     height = 0
     start_position = (0, 0)
-    speed = (0, 5)
+    speed = (0, 0)
 
     def __init__ (self, pond, t, y, spriteleft, spriteright):
         super(Fish, self).__init__(pond, t)
