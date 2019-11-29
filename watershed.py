@@ -263,6 +263,10 @@ class Droplet (LEDStripMob):
         return True
 
 
+def isdroplet (x):
+    return x.name.endswith("droplet")
+
+
 class GoodDroplet (Droplet):
     name = "gooddroplet"
     color = (0, 0, 0xff)

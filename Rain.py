@@ -54,4 +54,10 @@ class Rain (LEDStripMob):
     def maybe_spawn (pond, t):
         if t > Rain.last_spawn + 10:
             Rain.last_spawn = t
-            return Rain(pond, t)
+            ##XXX: special isdroplet method that changes object name
+            ##     because the way we import watershed into this module
+            ##     causes reevaluation, so a second instance of all
+            ##     classes.
+            droplet = next((x for x in pond.mobs if isdroplet(x)), None)
+            if not droplet:
+                return Rain(pond, t)
