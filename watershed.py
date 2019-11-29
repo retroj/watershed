@@ -135,8 +135,6 @@ class Mob ():
     name = "Mob"
     sprite = None
     mask = None
-    width = 0
-    height = 0
     position = (0, 0)
     start_position = (0, 0)
     start_position_time = None
