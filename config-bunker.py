@@ -58,7 +58,7 @@ LEDStrip.sections_spec = [
     { "name": "baddroplet", "length": 66, "direction": 1,
       "voffset": -1, "vmul": -1 }]
 
-Pond.healthsteps = 12
+Pond.healthsteps = 120
 Pond.active_spawners = [Fish, Rain]
 Pond.initial_level = 0.7
 
@@ -71,6 +71,8 @@ Rain.start_x = 0
 Rain.airspeed = (1.5, 8)
 Rain.waterspeed = (1.5, 8)
 Rain.fadetime = 3.5
+
+Droplet.trailfadetime = 1.0
 
 GoodDroplet.length = 7
 GoodDroplet.color = (0, 0, 0xcc)

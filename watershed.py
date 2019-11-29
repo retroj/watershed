@@ -182,11 +182,17 @@ class LEDStripMob (Mob):
 
 
 class Droplet (LEDStripMob):
+    ## internal
+    ##
     name = "unknown droplet"
+
+    ## config
+    ##
     start_x = 30
     airspeed = (1.5, 8)
     waterspeed = (1.5, 8)
     trailfadetime = 0.8
+    entered_mud_time = None
 
     def draw_on_matrix (self, pond, t):
         trail_length = len(self.matrix_trail)
@@ -224,10 +230,15 @@ class Droplet (LEDStripMob):
         mudlevels = pond.mud.levels
         mudlevel = min(mudlevels[x2], mudlevels[x2 - 1], mudlevels[x2 + 1])
         if y2 + 1 >= mudlevel or y2 + 1 >= pond.height:
-            ## turn this over to the mud
-            print("despawning "+self.name)
-            pond.mud.add(self)
-            return False
+            ## need to wait self.trailfadetime
+            self.entered_mud_time = self.entered_mud_time or t
+            if t > self.entered_mud_time + self.trailfadetime:
+                return False
+            else:
+                self.change_trajectory(t, (0, 0))
+                ox = randint(-1,1)
+                oy = randint(-1,0)
+                pond.mud.add(self, (ox, oy))
         return True
 
 
@@ -353,9 +364,12 @@ class Mud ():
         self.canvas = Image.new("RGB", (64, 32))
         self.mask = Image.new("1", (64, 32))
 
-    def add (self, droplet):
+    def add (self, droplet, offset=(0,0)):
+        ox, oy = offset
         x, y = droplet.position
-        self.levels[x] = y
+        x += ox
+        y += oy
+        y = self.levels[x] = max(2, min(self.levels[x], y))
         if y >= 0:
             self.canvas.putpixel((x, y), droplet.color)
             self.mask.putpixel((x, y), 255)
@@ -372,34 +386,33 @@ class Mud ():
                 c = self.canvas.getpixel((x, y))
                 if c == (0,0,0):                 ## space
                     sp = y ## if multiple spaces, this will be the top one
-                else:                            ## droplet
-                    if self.decay and random() < self.decay: ## random decay
-                        ## make a hole but don't fill it in this frame
-                        self.canvas.putpixel((x, y), (0, 0, 0))
-                        self.mask.putpixel((x, y), 0)
-                        newlevel = y + 1
-                    elif sp is not None: ## fall down
-                        value += 1 if c == (0, 0, 0xff) else -1
-                        self.canvas.putpixel((x, y), (0, 0, 0))
-                        self.mask.putpixel((x, y), 0)
-                        self.canvas.putpixel((x, y + 1), c)
-                        self.mask.putpixel((x, y + 1), 255)
-                        sp = y
-                        newlevel = y + 1
-                    else: ## fall diagonally
-                        value += 1 if c == GoodDroplet.color else -1
-                        left = x > 0 and self.levels[x - 1] > y + 1
-                        right = x < 63 and self.levels[x + 1] > y + 1
-                        if left and right:
-                            left = left and bool(getrandbits(1))
-                        y2 = y + 1
-                        if left:
-                            x2 = x - 1
-                        elif right:
-                            x2 = x + 1
-                        else:
-                            newlevel = y
-                            continue
+                elif self.decay and random() < self.decay: ## random decay
+                    ## make a hole but don't fill it in this frame
+                    self.canvas.putpixel((x, y), (0, 0, 0))
+                    self.mask.putpixel((x, y), 0)
+                    newlevel = y + 1
+                elif sp is not None: ## fall down
+                    value += 1 if c == GoodDroplet.color else -1
+                    self.canvas.putpixel((x, y), (0, 0, 0))
+                    self.mask.putpixel((x, y), 0)
+                    self.canvas.putpixel((x, y + 1), c)
+                    self.mask.putpixel((x, y + 1), 255)
+                    sp = y
+                    newlevel = y + 1
+                else: ## fall diagonally
+                    value += 1 if c == GoodDroplet.color else -1
+                    left = x > 0 and self.levels[x - 1] > y + 1
+                    right = x < 63 and self.levels[x + 1] > y + 1
+                    if left and right:
+                        left = left and bool(getrandbits(1))
+                    y2 = y + 1
+                    if left:
+                        x2 = x - 1
+                    elif right:
+                        x2 = x + 1
+                    else:
+                        newlevel = y
+                    if left or right:
                         self.canvas.putpixel((x, y), (0, 0, 0))
                         self.mask.putpixel((x, y), 0)
                         self.canvas.putpixel((x2, y2), c)
