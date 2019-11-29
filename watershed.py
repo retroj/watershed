@@ -110,10 +110,29 @@ class LEDStrip ():
         self.sections[name] = LEDStripSection(self, offset, length, direction, voffset, vmul)
 
 
+class MobCounter ():
+    mobs = None
+
+    def __init__ (self):
+        self.mobs = {}
+
+    def add (self, mob):
+        if mob.name not in self.mobs:
+            self.mobs[mob.name] = 0
+        self.mobs[mob.name] += 1
+
+    def remove (self, mob):
+        if self.mobs[mob.name] > 1:
+            self.mobs[mob.name] -= 1
+        else:
+            self.mobs.pop(mob.name)
+
+
 class Mob ():
     """
     Base class for sprites.
     """
+    name = "Mob"
     sprite = None
     mask = None
     width = 0
@@ -126,6 +145,7 @@ class Mob ():
 
     def __init__ (self, pond, t):
         self.start_position_time = t
+        pond.mobcounter.add(self)
 
     def update (self, pond, t):
         return True
@@ -155,7 +175,7 @@ class LEDStripMob (Mob):
     """
     A Mob that exclusively, or also, appears on a LED strip.
     """
-    name = "unknown LEDStripMob"
+    name = "LEDStripMob"
     stripsection = None
     color = (0, 0, 0)
     length = 7 ## length of droplet on strip
@@ -233,6 +253,7 @@ class Droplet (LEDStripMob):
             ## need to wait self.trailfadetime
             self.entered_mud_time = self.entered_mud_time or t
             if t > self.entered_mud_time + self.trailfadetime:
+                pond.mobcounter.remove(self)
                 return False
             else:
                 self.change_trajectory(t, (0, 0))
@@ -497,6 +518,7 @@ class ModeStartGame (Mode):
         self.start_time = t
         pond.health = 1.0
         pond.mud = Mud()
+        pond.mobcounter = MobCounter()
 
 
     def runframe (self, t):
@@ -563,6 +585,8 @@ class Pond ():
     mud = None
     ledstrip = None
     switches = None
+    wave = None
+    mobcounter = None
     width = 0
     height = 0
     canvas = None
@@ -586,7 +610,7 @@ class Pond ():
     def log_status (self):
         print("[h:{:4.2f}] {}".format(
             self.health,
-            " ".join([x.name for x in self.mobs])))
+            " ".join(["{}:{}".format(k,v) for k,v in self.mobcounter.mobs.items()])))
 
     def add_mob (self, m):
         z = m.z

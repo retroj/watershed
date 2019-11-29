@@ -33,8 +33,10 @@ class Fish (Mob):
         (x, y) = self.update_position(t)
         (sx, sy) = self.speed
         if sx > 0 and x >= pond.width:
+            pond.mobcounter.remove(self)
             return False
         elif sx < 0 and x < -self.width:
+            pond.mobcounter.remove(self)
             return False
         pond.canvas.paste(self.sprite, self.position, self.mask)
         return True
