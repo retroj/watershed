@@ -141,17 +141,16 @@ class Droplet (LEDStripMob):
             self.draw_on_matrix(pond, t)
         mudlevels = pond.mud.levels
         mudlevel = min(mudlevels[x2], mudlevels[x2 - 1], mudlevels[x2 + 1])
+        if self.entered_mud_time and t > self.entered_mud_time + self.trailfadetime:
+            pond.mobcounter.remove(self)
+            return False
         if y2 + 1 >= mudlevel or y2 + 1 >= pond.height:
             ## need to wait self.trailfadetime
             self.entered_mud_time = self.entered_mud_time or t
-            if t > self.entered_mud_time + self.trailfadetime:
-                pond.mobcounter.remove(self)
-                return False
-            else:
-                self.change_trajectory(t, (0, 0))
-                ox = randint(-1,1)
-                oy = randint(-1,0)
-                pond.mud.add(self, (ox, oy))
+            self.change_trajectory(t, (0, 0))
+            ox = randint(-1,1)
+            oy = randint(-1,0)
+            pond.mud.add(self, (ox, oy))
         return True
 
 
