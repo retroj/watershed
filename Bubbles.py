@@ -30,7 +30,7 @@ class Bubbles (Mob):
         if y <= pond.level_px:
             pond.mobcounter.remove(self)
             return False
-        c = tuple([min(255, x + 20) for x in pond.watercolor])
+        c = tuple([min(255, x + 30) for x in pond.watercolor])
         pond.canvas.putpixel((x, y), c)
         return True
 
