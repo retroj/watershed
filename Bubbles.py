@@ -1,7 +1,7 @@
 
 from random import *
 from AssetManager import AssetManager
-from watershed import Mob
+from mobs import Mob
 
 class Bubbles (Mob):
     name = "bubbles"

@@ -1,7 +1,7 @@
 
-from random import *
+from random import random, randint, getrandbits
 from AssetManager import AssetManager
-from watershed import Mob
+from mobs import Mob
 
 class Fish (Mob):
     name = "fish"
