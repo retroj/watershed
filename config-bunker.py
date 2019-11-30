@@ -32,19 +32,19 @@ Rain.airspeed = (1.5, 8)
 Rain.waterspeed = (1.5, 8)
 Rain.fadetime = 3.5
 
-Droplet.trailfadetime = 1.0
+Droplet.trailfadetime = 2.0
 
 GoodDroplet.length = 7
 GoodDroplet.color = (0, 0, 0xcc)
 GoodDroplet.start_x = 20
 GoodDroplet.airspeed = (1.5, 16)
-GoodDroplet.waterspeed = (1.5, 5)
+GoodDroplet.waterspeed = (1.5, 12)
 
 BadDroplet.length = 7
 BadDroplet.color = (0x66, 0, 0)
 BadDroplet.start_x = 48
 BadDroplet.airspeed = (-1.5, 16)
-BadDroplet.waterspeed = (-1.5, 8)
+BadDroplet.waterspeed = (-1.5, 12)
 
 ## how many seconds after a switch is pressed to reset the game (None to disable)
 ModeGameplay.auto_reset = None
